@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "canisters": {
+    "fundchain_backend": {
+      "main": "src/fundchain_backend/main.mo",
+      "type": "motoko"
+    }
+  }
+}
