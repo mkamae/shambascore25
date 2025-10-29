@@ -12,6 +12,11 @@
       "destination": "/index.html"
     }
   ],
+  "functions": {
+    "api/earth-engine.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

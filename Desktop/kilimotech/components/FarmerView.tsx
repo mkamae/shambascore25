@@ -12,6 +12,7 @@ import FinancialPartners from './FinancialPartners';
 import WeatherForecast from './WeatherForecast';
 import FarmerProfile from './FarmerProfile';
 import MpesaWallet from './MpesaWallet';
+import FarmHealth from './FarmHealth';
 
 interface FarmerViewProps {
     farmer: Farmer;
@@ -124,6 +125,11 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                     {/* Wallet Content */}
                     {activeTab === 'Wallet' && (
                         <MpesaWallet farmer={farmer} />
+                    )}
+
+                    {/* Farm Health Content */}
+                    {activeTab === 'Farm Health' && (
+                        <FarmHealth farmer={farmer} />
                     )}
 
                     {/* Profile Content */}

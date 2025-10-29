@@ -1,0 +1,200 @@
+/**
+ * Google Earth Engine API Route
+ * 
+ * Vercel Serverless Function for processing satellite imagery
+ * Uses Google Earth Engine JavaScript API
+ * 
+ * Note: This requires Google Earth Engine service account credentials
+ * For production, use a backend service that authenticates with GEE service account
+ */
+
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+interface EarthEngineRequest {
+    latitude: number;
+    longitude: number;
+    startDate: string;
+    endDate: string;
+    area?: number; // Optional area in hectares
+}
+
+interface EarthEngineResponse {
+    success: boolean;
+    data?: {
+        ndvi: {
+            avg: number;
+            min: number;
+            max: number;
+            trend: 'increasing' | 'stable' | 'decreasing';
+        };
+        ndwi: {
+            avg: number;
+            min: number;
+            max: number;
+        };
+        weather: {
+            rainfall: {
+                total: number;
+                avgDaily: number;
+                daysWithRain: number;
+            };
+            temperature: {
+                avg: number;
+                min: number;
+                max: number;
+            };
+        };
+        healthScore: number;
+        healthCategory: 'Excellent' | 'Good' | 'Moderate' | 'Poor' | 'Critical';
+        timestamp: string;
+    };
+    error?: string;
+}
+
+export default async function handler(
+    req: VercelRequest,
+    res: VercelResponse<EarthEngineResponse>
+) {
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+        return res.status(405).json({
+            success: false,
+            error: 'Method not allowed. Use POST.'
+        });
+    }
+
+    try {
+        const { latitude, longitude, startDate, endDate, area = 1 }: EarthEngineRequest = req.body;
+
+        // Validate inputs
+        if (!latitude || !longitude || !startDate || !endDate) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: latitude, longitude, startDate, endDate'
+            });
+        }
+
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid coordinates'
+            });
+        }
+
+        // For now, return simulated data
+        // In production, this would call Google Earth Engine API
+        // You'll need to set up GEE service account authentication
+        const simulatedData = await simulateEarthEngineData(
+            latitude,
+            longitude,
+            startDate,
+            endDate,
+            area
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: simulatedData
+        });
+
+    } catch (error: any) {
+        console.error('Earth Engine API error:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message || 'Failed to process Earth Engine request'
+        });
+    }
+}
+
+/**
+ * Simulate Earth Engine data processing
+ * Replace this with actual GEE API calls in production
+ */
+async function simulateEarthEngineData(
+    lat: number,
+    lon: number,
+    startDate: string,
+    endDate: string,
+    area: number
+): Promise<EarthEngineResponse['data']> {
+    // Calculate time period
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+    // Simulate NDVI values (normal range: -1 to 1, healthy crops: 0.3-0.8)
+    const ndviBase = 0.5 + (Math.random() * 0.3); // 0.5 to 0.8
+    const ndviAvg = parseFloat((ndviBase + (Math.random() * 0.1 - 0.05)).toFixed(3));
+    const ndviMin = parseFloat(Math.max(0.2, ndviAvg - 0.2).toFixed(3));
+    const ndviMax = parseFloat(Math.min(0.9, ndviAvg + 0.2).toFixed(3));
+
+    // Determine NDVI trend
+    let trend: 'increasing' | 'stable' | 'decreasing';
+    const trendRand = Math.random();
+    if (trendRand > 0.66) trend = 'increasing';
+    else if (trendRand > 0.33) trend = 'stable';
+    else trend = 'decreasing';
+
+    // Simulate NDWI values (normal range: -1 to 1, water presence: 0.3-1.0)
+    const ndwiAvg = parseFloat((0.4 + Math.random() * 0.3).toFixed(3));
+    const ndwiMin = parseFloat(Math.max(0, ndwiAvg - 0.2).toFixed(3));
+    const ndwiMax = parseFloat(Math.min(1, ndwiAvg + 0.2).toFixed(3));
+
+    // Simulate weather data (Kenya-specific ranges)
+    const rainfallTotal = parseFloat((Math.random() * 100 + 20).toFixed(2)); // 20-120mm
+    const rainfallAvgDaily = parseFloat((rainfallTotal / days).toFixed(2));
+    const daysWithRain = Math.floor(days * (0.2 + Math.random() * 0.3)); // 20-50% rainy days
+
+    // Temperature (Kenya: 15-30°C)
+    const tempAvg = parseFloat((20 + Math.random() * 8).toFixed(2));
+    const tempMin = parseFloat((tempAvg - 5 - Math.random() * 3).toFixed(2));
+    const tempMax = parseFloat((tempAvg + 5 + Math.random() * 3).toFixed(2));
+
+    // Calculate health score (0-100)
+    // Factors: NDVI (40%), Weather (30%), NDWI (20%), Trend (10%)
+    const ndviScore = Math.min(100, (ndviAvg / 0.8) * 40); // Max at 0.8 NDVI
+    const weatherScore = Math.min(30, ((rainfallTotal > 50 ? 1 : rainfallTotal / 50) * 15) + 
+                                     ((tempAvg > 18 && tempAvg < 26 ? 1 : 0.7) * 15));
+    const ndwiScore = Math.min(20, (ndwiAvg / 0.6) * 20);
+    const trendScore = trend === 'increasing' ? 10 : (trend === 'stable' ? 8 : 5);
+    
+    const healthScore = Math.round(ndviScore + weatherScore + ndwiScore + trendScore);
+    
+    // Determine category
+    let healthCategory: 'Excellent' | 'Good' | 'Moderate' | 'Poor' | 'Critical';
+    if (healthScore >= 80) healthCategory = 'Excellent';
+    else if (healthScore >= 65) healthCategory = 'Good';
+    else if (healthScore >= 50) healthCategory = 'Moderate';
+    else if (healthScore >= 35) healthCategory = 'Poor';
+    else healthCategory = 'Critical';
+
+    return {
+        ndvi: {
+            avg: ndviAvg,
+            min: ndviMin,
+            max: ndviMax,
+            trend
+        },
+        ndwi: {
+            avg: ndwiAvg,
+            min: ndwiMin,
+            max: ndwiMax
+        },
+        weather: {
+            rainfall: {
+                total: rainfallTotal,
+                avgDaily: rainfallAvgDaily,
+                daysWithRain
+            },
+            temperature: {
+                avg: tempAvg,
+                min: tempMin,
+                max: tempMax
+            }
+        },
+        healthScore,
+        healthCategory,
+        timestamp: new Date().toISOString()
+    };
+}
+
