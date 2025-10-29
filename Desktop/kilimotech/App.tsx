@@ -1,14 +1,14 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import FarmerView from './components/FarmerView';
-import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import Header from './components/shared/Header';
 
 const AppContent: React.FC = () => {
     const { userType, logout, selectedFarmer } = useApp();
 
     if (!userType) {
-        return <Login />;
+        return <LandingPage />;
     }
 
     return (

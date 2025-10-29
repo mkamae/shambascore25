@@ -9,14 +9,17 @@ import {
     updateMpesaStatement as updateMpesaStatementService,
     updateAIInsights
 } from '../services/farmerService';
+import { getCurrentUser, getSession, onAuthStateChange, signOut } from '../services/authService';
+import { User } from '@supabase/supabase-js';
 
 interface AppContextType {
     userType: UserType;
     farmers: Farmer[];
     selectedFarmer: Farmer | null;
     loading: boolean;
+    authUser: User | null;
     login: (type: UserType, farmerId?: string) => void;
-    logout: () => void;
+    logout: () => Promise<void>;
     selectFarmer: (farmerId: string) => void;
     updateFarmerInsights: (farmerId: string, insights: AIInsights) => void;
     updateFarmerData: (farmerId: string, data: FarmData) => void;
@@ -31,12 +34,54 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [userType, setUserType] = useState<UserType>(null);
     const [farmers, setFarmers] = useState<Farmer[]>(MOCK_FARMERS);
     const [selectedFarmer, setSelectedFarmer] = useState<Farmer | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [authUser, setAuthUser] = useState<User | null>(null);
 
-    // Fetch farmers from Supabase on mount
+    // Check for existing session on mount
     useEffect(() => {
-        refreshFarmers();
+        const initAuth = async () => {
+            try {
+                const session = await getSession();
+                const user = await getCurrentUser();
+                
+                if (session && user) {
+                    setAuthUser(user);
+                    await login('farmer');
+                } else {
+                    setUserType(null);
+                }
+            } catch (error) {
+                console.error('Auth init error:', error);
+                setUserType(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        initAuth();
+
+        // Listen for auth state changes
+        const { data: { subscription } } = onAuthStateChange((user) => {
+            setAuthUser(user);
+            if (user && !userType) {
+                login('farmer');
+            } else if (!user) {
+                setUserType(null);
+                setSelectedFarmer(null);
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
     }, []);
+
+    // Fetch farmers from Supabase on mount and when authenticated
+    useEffect(() => {
+        if (authUser) {
+            refreshFarmers();
+        }
+    }, [authUser]);
 
     const refreshFarmers = async () => {
         setLoading(true);
@@ -44,6 +89,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             const farmersData = await fetchAllFarmers();
             if (farmersData.length > 0) {
                 setFarmers(farmersData);
+                // Auto-select first farmer if none selected
+                if (!selectedFarmer && farmersData.length > 0) {
+                    setSelectedFarmer(farmersData[0]);
+                }
             }
             // If no farmers in Supabase, keep mock data
         } catch (error) {
@@ -65,14 +114,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 const localFarmer = farmers.find(f => f.id === farmerId);
                 setSelectedFarmer(localFarmer || farmers[0]);
             }
-        } else {
-            setSelectedFarmer(farmers[0] || null);
         }
     };
 
-    const logout = () => {
-        setUserType(null);
-        setSelectedFarmer(null);
+    const logout = async () => {
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            setUserType(null);
+            setSelectedFarmer(null);
+            setAuthUser(null);
+        }
     };
 
     const selectFarmer = async (farmerId: string) => {
@@ -156,6 +210,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         farmers,
         selectedFarmer,
         loading,
+        authUser,
         login,
         logout,
         selectFarmer,
@@ -164,7 +219,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateMpesaStatement,
         updateCreditProfile,
         refreshFarmers
-    }), [userType, farmers, selectedFarmer, loading]);
+    }), [userType, farmers, selectedFarmer, loading, authUser]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
