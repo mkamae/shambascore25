@@ -72,6 +72,32 @@ export interface WeatherLocation {
     };
 }
 
+// Wallet types
+export interface Wallet {
+    id: string;
+    farmerId: string;
+    balance: number;
+    currency: string;
+    phoneNumber: string;
+    status: 'Active' | 'Suspended' | 'Closed';
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface WalletTransaction {
+    id: string;
+    walletId: string;
+    type: 'deposit' | 'withdrawal' | 'payment_in' | 'payment_out';
+    amount: number;
+    balanceAfter: number;
+    description?: string;
+    reference?: string;
+    phoneNumber?: string;
+    status: 'pending' | 'completed' | 'failed';
+    metadata?: any;
+    createdAt: string;
+}
+
 // Farmer Profile and Risk Assessment Types
 export interface ProductionProfile {
     cropTypes: string[];

@@ -29,6 +29,12 @@ const navItems: NavItem[] = [
         description: 'Farm Data & Management'
     },
     {
+        id: 'Wallet',
+        label: 'M-Pesa Wallet',
+        icon: '💳',
+        description: 'Money In & Out'
+    },
+    {
         id: 'Financials',
         label: 'Financials',
         icon: '💰',
