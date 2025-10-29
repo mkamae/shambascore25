@@ -61,19 +61,43 @@ export default async function handler(
     req: VercelRequest,
     res: VercelResponse<EarthEngineResponse>
 ) {
-    // Only allow POST requests
-    if (req.method !== 'POST') {
-        return res.status(405).json({
-            success: false,
-            error: 'Method not allowed. Use POST.'
+    // Health check + simple GET mock for convenience in local dev
+    if (req.method === 'GET') {
+        return res.status(200).json({
+            success: true,
+            data: {
+                ndvi: { avg: 0.52, min: 0.31, max: 0.75, trend: 'stable' },
+                ndwi: { avg: 0.47, min: 0.22, max: 0.63 },
+                weather: {
+                    rainfall: { total: 68.2, avgDaily: 4.3, daysWithRain: 7 },
+                    temperature: { avg: 24.1, min: 18.7, max: 29.6 }
+                },
+                healthScore: 72,
+                healthCategory: 'Good',
+                timestamp: new Date().toISOString()
+            }
         });
     }
 
+    // Only allow POST for compute requests
+    if (req.method !== 'POST') {
+        return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
+    }
+
     try {
-        const { latitude, longitude, startDate, endDate, area = 1 }: EarthEngineRequest = req.body;
+        // Accept alternative param names (lat/lon) to match some clients
+        const body = req.body || {};
+        const latitude = body.latitude ?? body.lat;
+        const longitude = body.longitude ?? body.lon ?? body.lng;
+        const startDate = body.startDate;
+        const endDate = body.endDate;
+        const area = body.area ?? 1;
 
         // Validate inputs
-        if (!latitude || !longitude || !startDate || !endDate) {
+        if (
+            latitude === undefined || longitude === undefined || latitude === null || longitude === null ||
+            !startDate || !endDate
+        ) {
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: latitude, longitude, startDate, endDate'
