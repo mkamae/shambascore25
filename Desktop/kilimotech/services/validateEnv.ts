@@ -39,13 +39,9 @@ export function validateEnvironmentVariables(): EnvValidation {
         errors.push('VITE_GEMINI_API_KEY is missing or empty');
     }
 
-    // Check Weather API keys (optional for weather feature)
-    const googleMapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    // Check Weather API key (optional for weather feature)
+    // OpenWeatherMap is used for both geocoding and weather data
     const openWeatherKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
-    
-    if (!googleMapsKey || googleMapsKey === 'undefined' || googleMapsKey === '') {
-        warnings.push('VITE_GOOGLE_MAPS_API_KEY is missing (required for weather forecasts)');
-    }
     
     if (!openWeatherKey || openWeatherKey === 'undefined' || openWeatherKey === '') {
         warnings.push('VITE_OPENWEATHER_API_KEY is missing (required for weather forecasts)');

@@ -1,13 +1,13 @@
 /**
  * Weather Service
  * 
- * Handles weather forecast fetching using:
- * - Google Geocoding API for location → coordinates conversion
- * - OpenWeatherMap API for weather forecasts
+ * Handles weather forecast fetching using OpenWeatherMap for both:
+ * - Geocoding API: location name → coordinates conversion
+ * - Weather API: weather forecasts
  * 
- * Note: Google Maps Platform doesn't have a direct Weather API,
- * so we use OpenWeatherMap (free tier available) which is more reliable.
- * You can also use other weather APIs by changing the fetchWeatherForecast function.
+ * Only requires one API key: VITE_OPENWEATHER_API_KEY
+ * Get your free key at: https://openweathermap.org/api
+ * Free tier: 1,000 calls/day, 60 calls/minute
  */
 
 export interface WeatherForecast {
@@ -41,43 +41,45 @@ export interface WeatherApiResponse {
 }
 
 /**
- * Get coordinates from location name using Google Geocoding API
+ * Get coordinates from location name using OpenWeatherMap Geocoding API
+ * This uses the same API key as weather data, so only one key is needed!
  */
 async function geocodeLocation(locationName: string): Promise<{ lat: number; lon: number } | null> {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = import.meta.env.VITE_OPENWEATHER_API_KEY;
     
     if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-        console.error('❌ Google Maps API key missing!');
+        console.error('❌ OpenWeatherMap API key missing!');
         throw new Error(
-            'Google Maps API key is required for location lookup.\n' +
-            'Add VITE_GOOGLE_MAPS_API_KEY to your .env.local file.'
+            'OpenWeatherMap API key is required for location lookup.\n' +
+            'Add VITE_OPENWEATHER_API_KEY to your .env.local file.\n' +
+            'Get a free key at: https://openweathermap.org/api'
         );
     }
 
     try {
+        // OpenWeatherMap Geocoding API
         const response = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(locationName)}&key=${apiKey}`
+            `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(locationName)}&limit=1&appid=${apiKey}`
         );
 
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Invalid API key. Please check your OpenWeatherMap API key.');
+            }
             throw new Error(`Geocoding API error: ${response.status}`);
         }
 
         const data = await response.json();
 
-        if (data.status === 'ZERO_RESULTS' || !data.results || data.results.length === 0) {
+        if (!data || data.length === 0) {
             console.warn(`No results found for location: ${locationName}`);
             return null;
         }
 
-        if (data.status !== 'OK') {
-            throw new Error(`Geocoding API error: ${data.status}`);
-        }
-
-        const location = data.results[0].geometry.location;
+        const location = data[0];
         return {
             lat: location.lat,
-            lon: location.lng
+            lon: location.lon
         };
     } catch (error) {
         console.error('Geocoding error:', error);

@@ -12,26 +12,8 @@ The Weather Forecast feature allows farmers to:
 
 ## 🔑 API Keys Required
 
-### 1. Google Maps Geocoding API Key
-**Purpose:** Converts location names (e.g., "Nairobi, Kenya") into coordinates (lat/lon)
-
-**How to Get:**
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing
-3. Enable "Geocoding API"
-4. Go to "Credentials" → Create API Key
-5. Restrict the key to Geocoding API only (for security)
-
-**Add to `.env.local`:**
-```env
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-```
-
-**Free Tier:** $200 credit/month (enough for ~40,000 requests)
-
----
-
-### 2. OpenWeatherMap API Key
+### OpenWeatherMap API Key
+**Purpose:** Used for both geocoding (location → coordinates) and weather forecasts
 **Purpose:** Fetches actual weather forecast data
 
 **Why OpenWeatherMap?**
@@ -54,8 +36,11 @@ VITE_OPENWEATHER_API_KEY=your_openweather_api_key_here
 - 1,000 API calls/day
 - 60 calls/minute
 - 5-day/3-hour forecast available
+- Geocoding included (location lookup)
 
 **Upgrade:** $40/month for 50,000 calls/day if needed
+
+**Note:** OpenWeatherMap provides both geocoding and weather data, so only one API key is needed!
 
 ---
 
@@ -67,35 +52,36 @@ VITE_SUPABASE_URL=https://jvqyfxlozoehozunfzkv.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 VITE_GEMINI_API_KEY=AIzaSyA8t9sz9LZdiflCux5ZbxWGB2YLWS7_79o
 
-# New Weather API keys
-VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-VITE_OPENWEATHER_API_KEY=your_openweather_api_key_here
+# Weather API key (used for both geocoding and weather)
+VITE_OPENWEATHER_API_KEY=a874d14058093d9f32d280e94efc92bd
 ```
 
 ---
 
 ## 🌐 Vercel Environment Variables
 
-**CRITICAL:** Add these to Vercel for production:
+**CRITICAL:** Add this to Vercel for production:
 
 1. Go to **Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
-2. Add both variables:
+2. Add the OpenWeatherMap API key:
    ```
-   VITE_GOOGLE_MAPS_API_KEY = your_google_maps_api_key
-   VITE_OPENWEATHER_API_KEY = your_openweather_api_key
+   VITE_OPENWEATHER_API_KEY = a874d14058093d9f32d280e94efc92bd
    ```
 3. Select **Production, Preview, and Development** environments
 4. **Save** and **Redeploy** with cache cleared
+
+**Note:** Only one API key is needed since OpenWeatherMap handles both geocoding and weather!
 
 ---
 
 ## 📁 Files Created
 
 ### 1. `services/weatherService.ts`
-- Handles geocoding (location → coordinates)
-- Fetches weather forecasts from OpenWeatherMap
+- Uses OpenWeatherMap for both geocoding (location → coordinates) and weather
+- Fetches weather forecasts from OpenWeatherMap API
 - Implements caching with localStorage (24-hour TTL)
 - Comprehensive error handling
+- Only requires one API key!
 
 ### 2. `components/WeatherForecast.tsx`
 - User-friendly weather forecast component
@@ -133,14 +119,14 @@ VITE_OPENWEATHER_API_KEY=your_openweather_api_key_here
 ### Flow:
 1. **User enters location** (e.g., "Nairobi, Kenya")
 2. **Check cache** - If cached and recent, use cached data
-3. **Geocode location** - Convert name to coordinates using Google Geocoding API
+3. **Geocode location** - Convert name to coordinates using OpenWeatherMap Geocoding API
 4. **Fetch weather** - Get 5-day forecast from OpenWeatherMap API
 5. **Cache result** - Save to localStorage with 24-hour expiry
 6. **Display forecast** - Show beautiful forecast cards
 
-### API Calls:
+### API Calls (All using OpenWeatherMap):
 ```
-User Input → Google Geocoding API → Coordinates → OpenWeatherMap API → Forecast
+User Input → OpenWeatherMap Geocoding API → Coordinates → OpenWeatherMap Weather API → Forecast
 ```
 
 ---
