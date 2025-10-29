@@ -77,6 +77,7 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ farmer }) => {
 
         setLoading(true);
         setError(null);
+        setForecast(null);
 
         try {
             // Check cache first
@@ -90,13 +91,19 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ farmer }) => {
 
             // Fetch from API
             const data = await getWeatherForecast(locationName);
-            setForecast(data);
             
-            // Cache the result
-            cacheForecast(locationName, data);
-            saveRecentLocation(locationName);
+            if (data && data.forecasts && data.forecasts.length > 0) {
+                setForecast(data);
+                // Cache the result
+                cacheForecast(locationName, data);
+                saveRecentLocation(locationName);
+            } else {
+                setError('No forecast data received. Please try again.');
+            }
         } catch (err: any) {
-            setError(err.message || 'Failed to fetch weather forecast. Please check your API keys and try again.');
+            console.error('Weather forecast error:', err);
+            const errorMessage = err?.message || err?.toString() || 'Failed to fetch weather forecast.';
+            setError(errorMessage);
             setForecast(null);
         } finally {
             setLoading(false);
@@ -109,18 +116,23 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ farmer }) => {
     };
 
     const formatDate = (dateString: string): string => {
-        const date = new Date(dateString);
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        try {
+            const date = new Date(dateString + 'T00:00:00');
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
 
-        if (date.toDateString() === today.toDateString()) {
-            return 'Today';
+            if (date.getTime() === today.getTime()) {
+                return 'Today';
+            }
+            if (date.getTime() === tomorrow.getTime()) {
+                return 'Tomorrow';
+            }
+            return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        } catch {
+            return dateString;
         }
-        if (date.toDateString() === tomorrow.toDateString()) {
-            return 'Tomorrow';
-        }
-        return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     };
 
     return (
@@ -179,12 +191,19 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ farmer }) => {
                 {/* Error State */}
                 {error && !loading && (
                     <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-red-700 text-sm">{error}</p>
+                        <p className="text-red-700 text-sm font-semibold mb-1">Error</p>
+                        <p className="text-red-600 text-sm">{error}</p>
+                        <button
+                            onClick={() => setError(null)}
+                            className="mt-2 text-xs text-red-600 hover:text-red-700 underline"
+                        >
+                            Dismiss
+                        </button>
                     </div>
                 )}
 
                 {/* Forecast Display */}
-                {forecast && !loading && (
+                {forecast && !loading && forecast.forecasts && forecast.forecasts.length > 0 && (
                     <div className="space-y-4">
                         <div className="pb-4 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-800">
@@ -262,4 +281,3 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ farmer }) => {
 };
 
 export default WeatherForecast;
-

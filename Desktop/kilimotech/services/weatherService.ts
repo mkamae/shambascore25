@@ -66,14 +66,19 @@ async function geocodeLocation(locationName: string): Promise<{ lat: number; lon
             if (response.status === 401) {
                 throw new Error('Invalid API key. Please check your OpenWeatherMap API key.');
             }
-            throw new Error(`Geocoding API error: ${response.status}`);
+            if (response.status === 429) {
+                throw new Error('API rate limit exceeded. Please try again later.');
+            }
+            const errorText = await response.text();
+            console.error('Geocoding API error:', response.status, errorText);
+            throw new Error(`Geocoding API error: ${response.status} - ${errorText.substring(0, 100)}`);
         }
 
         const data = await response.json();
 
-        if (!data || data.length === 0) {
+        if (!data || !Array.isArray(data) || data.length === 0) {
             console.warn(`No results found for location: ${locationName}`);
-            return null;
+            throw new Error(`Location "${locationName}" not found. Please try a more specific location (e.g., "Nairobi, Kenya").`);
         }
 
         const location = data[0];
@@ -115,31 +120,62 @@ async function fetchWeatherForecast(lat: number, lon: number): Promise<WeatherFo
             if (response.status === 401) {
                 throw new Error('Invalid API key. Please check your OpenWeatherMap API key.');
             }
-            throw new Error(`Weather API error: ${response.status}`);
+            if (response.status === 429) {
+                throw new Error('API rate limit exceeded. Please try again later.');
+            }
+            const errorText = await response.text();
+            console.error('Weather API error:', response.status, errorText);
+            let errorMessage = `Weather API error: ${response.status}`;
+            try {
+                const errorData = JSON.parse(errorText);
+                if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch {
+                errorMessage = errorText.substring(0, 100);
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
 
-        if (!data.list || data.list.length === 0) {
+        if (!data || !data.list || !Array.isArray(data.list) || data.list.length === 0) {
             throw new Error('No weather data available for this location.');
         }
 
         // Group forecasts by day and extract daily summaries
         const dailyForecasts: { [key: string]: any[] } = {};
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         
         data.list.forEach((item: any) => {
             const date = new Date(item.dt * 1000);
             const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
             
-            if (!dailyForecasts[dateKey]) {
-                dailyForecasts[dateKey] = [];
+            // Only include forecasts for today and future days
+            const forecastDate = new Date(dateKey + 'T00:00:00');
+            if (forecastDate >= today) {
+                if (!dailyForecasts[dateKey]) {
+                    dailyForecasts[dateKey] = [];
+                }
+                dailyForecasts[dateKey].push(item);
             }
-            dailyForecasts[dateKey].push(item);
         });
 
+        // Sort dates and get next 5 days
+        const sortedDates = Object.keys(dailyForecasts)
+            .sort()
+            .filter(dateKey => {
+                // Filter out today if it has very few entries (incomplete day)
+                if (dateKey === today.toISOString().split('T')[0]) {
+                    return dailyForecasts[dateKey].length >= 2; // At least 2 forecasts for today
+                }
+                return true;
+            })
+            .slice(0, 5);
+
         // Convert to our WeatherForecast format (next 5 days)
-        const forecasts: WeatherForecast[] = Object.keys(dailyForecasts)
-            .slice(0, 5)
+        const forecasts: WeatherForecast[] = sortedDates
             .map(dateKey => {
                 const dayItems = dailyForecasts[dateKey];
                 
@@ -195,23 +231,35 @@ async function fetchWeatherForecast(lat: number, lon: number): Promise<WeatherFo
  * Main function to get weather forecast by location name
  */
 export async function getWeatherForecast(locationName: string): Promise<WeatherApiResponse> {
-    // Step 1: Convert location name to coordinates
-    const coordinates = await geocodeLocation(locationName);
-    
-    if (!coordinates) {
-        throw new Error(`Location "${locationName}" not found. Please try a more specific location name.`);
-    }
-
-    // Step 2: Fetch weather forecast
-    const forecasts = await fetchWeatherForecast(coordinates.lat, coordinates.lon);
-
-    return {
-        forecasts,
-        location: {
-            name: locationName,
-            coordinates
+    try {
+        // Step 1: Convert location name to coordinates
+        const coordinates = await geocodeLocation(locationName);
+        
+        if (!coordinates) {
+            throw new Error(`Location "${locationName}" not found. Please try a more specific location (e.g., "Nairobi, Kenya").`);
         }
-    };
+
+        // Step 2: Fetch weather forecast
+        const forecasts = await fetchWeatherForecast(coordinates.lat, coordinates.lon);
+
+        if (!forecasts || forecasts.length === 0) {
+            throw new Error('No forecast data available. Please try again later.');
+        }
+
+        return {
+            forecasts,
+            location: {
+                name: locationName,
+                coordinates
+            }
+        };
+    } catch (error: any) {
+        // Re-throw with more context
+        if (error.message) {
+            throw error;
+        }
+        throw new Error(`Failed to get weather forecast: ${error.toString()}`);
+    }
 }
 
 /**
