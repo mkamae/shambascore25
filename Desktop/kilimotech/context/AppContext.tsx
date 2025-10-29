@@ -1,12 +1,11 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect } from 'react';
-import { Farmer, UserType, AIInsights, FarmData, MpesaStatement, CreditProfile } from '../types';
+import { Farmer, UserType, AIInsights, FarmData, CreditProfile } from '../types';
 import { MOCK_FARMERS } from '../constants';
 import {
     fetchAllFarmers,
     fetchFarmerById,
     updateFarmData as updateFarmDataService,
     updateCreditProfile as updateCreditProfileService,
-    updateMpesaStatement as updateMpesaStatementService,
     updateAIInsights
 } from '../services/farmerService';
 import { getCurrentUser, getSession, onAuthStateChange, signOut } from '../services/authService';
@@ -24,7 +23,6 @@ interface AppContextType {
     selectFarmer: (farmerId: string) => void;
     updateFarmerInsights: (farmerId: string, insights: AIInsights) => void;
     updateFarmerData: (farmerId: string, data: FarmData) => void;
-    updateMpesaStatement: (farmerId: string, statement: MpesaStatement) => void;
     updateCreditProfile: (farmerId: string, profile: CreditProfile) => void;
     refreshFarmers: () => Promise<void>;
 }
@@ -249,25 +247,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    const updateMpesaStatement = async (farmerId: string, statement: MpesaStatement) => {
-        try {
-            // Update in Supabase
-            await updateMpesaStatementService(farmerId, statement);
-        } catch (error) {
-            console.error('Error updating M-Pesa statement:', error);
-        }
-        
-        // Update local state
-        setFarmers(prevFarmers =>
-            prevFarmers.map(farmer =>
-                farmer.id === farmerId ? { ...farmer, mpesaStatement: statement } : farmer
-            )
-        );
-         if (selectedFarmer?.id === farmerId) {
-            setSelectedFarmer(prev => prev ? { ...prev, mpesaStatement: statement } : null);
-        }
-    };
-
     const updateCreditProfile = async (farmerId: string, profile: CreditProfile) => {
         try {
             // Update in Supabase
@@ -298,7 +277,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         selectFarmer,
         updateFarmerInsights,
         updateFarmerData,
-        updateMpesaStatement,
         updateCreditProfile,
         refreshFarmers
     }), [userType, farmers, selectedFarmer, loading, authUser]);

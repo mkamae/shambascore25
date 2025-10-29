@@ -26,7 +26,6 @@ interface InsightsRequest {
             repaymentAbilityScore: number;
             riskScore: number;
         };
-        mpesaStatement: boolean;
     };
 }
 
@@ -115,7 +114,6 @@ export default async function handler(
             - Current Loan Eligibility: KES ${farmer.creditProfile.loanEligibility}
             - Repayment Score: ${farmer.creditProfile.repaymentAbilityScore}%
             - Risk Score: ${farmer.creditProfile.riskScore} (lower is better)
-            - M-Pesa Statement Uploaded: ${farmer.mpesaStatement ? 'Yes' : 'No'}
 
             Based on this data, generate concise and practical advice for the farmer in three key areas:
             1.  **Improving Yield:** What can they do to increase their farm's productivity?

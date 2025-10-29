@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Farmer, FarmData, CreditProfile, MpesaStatement, AIInsights } from '../types';
+import { Farmer, FarmData, CreditProfile, AIInsights } from '../types';
 
 /**
  * Fetch all farmers with their related data
@@ -19,11 +19,10 @@ export async function fetchAllFarmers(): Promise<Farmer[]> {
     // Fetch all related data for each farmer
     const farmers = await Promise.all(
         farmersData.map(async (farmer) => {
-            const [farmData, creditProfile, insurance, mpesaStatement, insights] = await Promise.all([
+            const [farmData, creditProfile, insurance, insights] = await Promise.all([
                 fetchFarmData(farmer.id),
                 fetchCreditProfile(farmer.id),
                 fetchInsurance(farmer.id),
-                fetchMpesaStatement(farmer.id),
                 fetchAIInsights(farmer.id)
             ]);
 
@@ -47,7 +46,6 @@ export async function fetchAllFarmers(): Promise<Farmer[]> {
                     riskScore: 0
                 },
                 insurance: insurance || { status: 'Inactive' as const },
-                mpesaStatement,
                 insights
             };
         })
@@ -71,11 +69,10 @@ export async function fetchFarmerById(farmerId: string): Promise<Farmer | null> 
         return null;
     }
 
-    const [farmData, creditProfile, insurance, mpesaStatement, insights] = await Promise.all([
+    const [farmData, creditProfile, insurance, insights] = await Promise.all([
         fetchFarmData(farmer.id),
         fetchCreditProfile(farmer.id),
         fetchInsurance(farmer.id),
-        fetchMpesaStatement(farmer.id),
         fetchAIInsights(farmer.id)
     ]);
 
@@ -99,7 +96,6 @@ export async function fetchFarmerById(farmerId: string): Promise<Farmer | null> 
             riskScore: 0
         },
         insurance: insurance || { status: 'Inactive' as const },
-        mpesaStatement,
         insights
     };
 }
@@ -248,45 +244,6 @@ async function fetchInsurance(farmerId: string) {
     };
 }
 
-/**
- * Fetch M-Pesa statement for a farmer
- */
-async function fetchMpesaStatement(farmerId: string): Promise<MpesaStatement | null> {
-    const { data, error } = await supabase
-        .from('mpesa_statements')
-        .select('*')
-        .eq('farmer_id', farmerId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-    if (error || !data) return null;
-
-    return {
-        fileName: data.file_name,
-        uploadDate: data.upload_date
-    };
-}
-
-/**
- * Update M-Pesa statement for a farmer
- */
-export async function updateMpesaStatement(farmerId: string, statement: MpesaStatement): Promise<boolean> {
-    const { error } = await supabase
-        .from('mpesa_statements')
-        .insert({
-            farmer_id: farmerId,
-            file_name: statement.fileName,
-            upload_date: statement.uploadDate
-        });
-
-    if (error) {
-        console.error('Error updating M-Pesa statement:', error);
-        return false;
-    }
-
-    return true;
-}
 
 /**
  * Fetch AI insights for a farmer

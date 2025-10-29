@@ -24,7 +24,6 @@ export const MOCK_FARMERS: Farmer[] = [
         insurance: {
             status: 'Active',
         },
-        mpesaStatement: null,
         insights: null,
     },
     {
@@ -48,10 +47,6 @@ export const MOCK_FARMERS: Farmer[] = [
         },
         insurance: {
             status: 'Inactive',
-        },
-        mpesaStatement: {
-            fileName: 'Asha_Mpesa_Statement_Q2.pdf',
-            uploadDate: '2023-06-15',
         },
         insights: null,
     },
@@ -77,7 +72,6 @@ export const MOCK_FARMERS: Farmer[] = [
         insurance: {
             status: 'Active',
         },
-        mpesaStatement: null,
         insights: null,
     },
 ];

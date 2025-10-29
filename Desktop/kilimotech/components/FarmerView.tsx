@@ -7,11 +7,9 @@ import AIInsights from './AIInsights';
 import FarmDataForm from './FarmDataForm';
 import CreditSimulator from './CreditSimulator';
 import InsuranceModule from './InsuranceModule';
-import MpesaUpload from './MpesaUpload';
 import FinancialPartners from './FinancialPartners';
 import WeatherForecast from './WeatherForecast';
 import FarmerProfile from './FarmerProfile';
-import MpesaWallet from './MpesaWallet';
 import FarmHealth from './FarmHealth';
 import PlantDiagnosis from './PlantDiagnosis';
 
@@ -117,15 +115,9 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                                 <InsuranceModule insurance={farmer.insurance} />
                             </div>
                             <div className="space-y-6">
-                                <MpesaUpload farmer={farmer} />
                                 <FinancialPartners />
                             </div>
                         </div>
-                    )}
-
-                    {/* Wallet Content */}
-                    {activeTab === 'Wallet' && (
-                        <MpesaWallet farmer={farmer} />
                     )}
 
                     {/* Farm Health Content */}

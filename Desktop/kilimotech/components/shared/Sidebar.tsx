@@ -41,12 +41,6 @@ const navItems: NavItem[] = [
         description: 'Disease Detection'
     },
     {
-        id: 'Wallet',
-        label: 'M-Pesa Wallet',
-        icon: '💳',
-        description: 'Money In & Out'
-    },
-    {
         id: 'Financials',
         label: 'Financials',
         icon: '💰',
