@@ -1,198 +1,70 @@
-import { GoogleGenAI, Type } from "@google/genai";
+/**
+ * Gemini Service - Frontend Client
+ * 
+ * This service now calls secure backend API routes instead of using API keys directly.
+ * The API key is stored server-side for security.
+ */
+
 import { Farmer, AIInsights, CreditProfile } from '../types';
 
-// ============================================
-// ENVIRONMENT VARIABLE SETUP
-// ============================================
-// Vite exposes env vars via import.meta.env
-// Only variables prefixed with VITE_ are available in browser
-// ============================================
-
-// Lazy initialization - only create client when needed
-let aiInstance: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
-    // Return existing instance if already created
-    if (aiInstance) {
-        return aiInstance;
-    }
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    // Validate API key is present
-    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey === undefined) {
-        console.error('❌ GEMINI API KEY MISSING!');
-        console.error('Expected: VITE_GEMINI_API_KEY');
-        console.error('Current value:', apiKey);
-        console.error('Current MODE:', import.meta.env.MODE);
-        console.error('All env vars:', Object.keys(import.meta.env));
-        
-        throw new Error(
-            '🔴 Gemini API key is missing!\n\n' +
-            'Steps to fix:\n' +
-            '1. Check .env.local exists in project root\n' +
-            '2. Verify it contains: VITE_GEMINI_API_KEY=your_key\n' +
-            '3. Restart dev server: npm run dev\n' +
-            '4. Clear browser cache: Ctrl+Shift+R\n\n' +
-            'For Vercel deployment, add VITE_GEMINI_API_KEY to environment variables.'
-        );
-    }
-
-    try {
-        aiInstance = new GoogleGenAI({ apiKey });
-        console.log('✅ Gemini AI initialized successfully');
-        return aiInstance;
-    } catch (error) {
-        console.error('❌ Failed to initialize Gemini AI:', error);
-        throw new Error('Failed to initialize Gemini AI client. Check API key format.');
-    }
-}
-
-const insightsSchema = {
-    type: Type.OBJECT,
-    properties: {
-        yieldAdvice: {
-            type: Type.STRING,
-            description: "Personalized advice for the farmer to improve their crop yield. Provide 2-3 actionable, concise bullet points."
-        },
-        riskAdvice: {
-            type: Type.STRING,
-            description: "Analysis of potential financial and operational risks based on the farmer's data. Provide 2-3 actionable, concise bullet points for mitigation."
-        },
-        loanAdvice: {
-            type: Type.STRING,
-            description: "Suggestions for the farmer to improve their loan eligibility and credit profile. Provide 2-3 actionable, concise bullet points."
-        }
-    },
-    required: ["yieldAdvice", "riskAdvice", "loanAdvice"]
-};
-
-const creditScoreSchema = {
-    type: Type.OBJECT,
-    properties: {
-        loanEligibility: {
-            type: Type.NUMBER,
-            description: "A revised loan eligibility amount in Kenyan Shillings (KES) based on the M-Pesa statement analysis."
-        },
-        repaymentAbilityScore: {
-            type: Type.NUMBER,
-            description: "A score from 0 to 100 representing the farmer's ability to repay the loan."
-        },
-        riskScore: {
-            type: Type.NUMBER,
-            description: "A score from 0 to 100 representing the credit risk. A lower score is better."
-        },
-        summary: {
-            type: Type.STRING,
-            description: "A concise, 1-2 sentence summary of the credit analysis, highlighting key positive or negative factors."
-        }
-    },
-    required: ["loanEligibility", "repaymentAbilityScore", "riskScore", "summary"]
-};
-
+/**
+ * Get AI-powered farm insights from backend API
+ */
 export const getFarmInsights = async (farmer: Farmer): Promise<AIInsights> => {
-    const ai = getGeminiClient(); // Initialize only when needed
-    
-    const prompt = `
-        Analyze the following farmer's data and provide personalized, actionable insights.
-        The farmer is from ${farmer.location}.
-
-        Farmer Profile:
-        - Name: ${farmer.name}
-        - Farm Type: ${farmer.farmType}
-
-        Farm Data:
-        - Crop: ${farmer.farmData.cropType}
-        - Acreage: ${farmer.farmData.acreage} acres
-        - Estimated Yield: ${farmer.farmData.yieldEstimate} tons/acre
-        - Annual Expenses: KES ${farmer.farmData.annualExpenses}
-        - Rainfall: ${farmer.farmData.rainfall}
-        - Soil Health: ${farmer.farmData.soilHealth}
-
-        Financial Profile:
-        - Current Loan Eligibility: KES ${farmer.creditProfile.loanEligibility}
-        - Repayment Score: ${farmer.creditProfile.repaymentAbilityScore}%
-        - Risk Score: ${farmer.creditProfile.riskScore} (lower is better)
-        - M-Pesa Statement Uploaded: ${farmer.mpesaStatement ? 'Yes' : 'No'}
-
-        Based on this data, generate concise and practical advice for the farmer in three key areas:
-        1.  **Improving Yield:** What can they do to increase their farm's productivity?
-        2.  **Managing Risks:** What are the key financial or environmental risks, and how can they be mitigated?
-        3.  **Boosting Loan Eligibility:** What steps can they take to improve their credit profile and access more capital?
-
-        Format the response as a JSON object with keys "yieldAdvice", "riskAdvice", and "loanAdvice". The advice in each section should be a string containing a few bullet points.
-    `;
-
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash", // Using gemini-2.5-flash for basic text tasks
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: insightsSchema,
-                temperature: 0.5,
+        const response = await fetch('/api/gemini/insights', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             },
+            body: JSON.stringify({ farmer })
         });
 
-        const text = response.text;
-        const insights = JSON.parse(text);
-
-        if (insights.yieldAdvice && insights.riskAdvice && insights.loanAdvice) {
-            return insights as AIInsights;
-        } else {
-            console.error("Received malformed insights from AI:", insights);
-            throw new Error("AI response was not in the expected format.");
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Failed to fetch insights' }));
+            throw new Error(error.error || 'Failed to generate AI insights');
         }
-    } catch (error) {
-        console.error("Error fetching insights from Gemini API:", error);
-        throw new Error("Failed to generate AI insights. Please check your connection or API key and try again.");
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Invalid response from AI service');
+        }
+
+        return result.data as AIInsights;
+    } catch (error: any) {
+        console.error('Error fetching insights:', error);
+        throw new Error(error.message || 'Failed to generate AI insights. Please try again.');
     }
 };
 
+/**
+ * Score M-Pesa statement for credit analysis from backend API
+ */
 export const scoreMpesaStatement = async (statementContent: string): Promise<CreditProfile> => {
-    const ai = getGeminiClient(); // Initialize only when needed
-    
-    const prompt = `
-       Act as a credit analyst for a Kenyan microfinance institution specializing in agricultural loans.
-       Analyze the following M-Pesa statement data to assess the creditworthiness of a smallholder farmer.
+    try {
+        const response = await fetch('/api/gemini/credit-score', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ statementContent })
+        });
 
-       M-Pesa Statement Data:
-       ---
-       ${statementContent}
-       ---
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Failed to score statement' }));
+            throw new Error(error.error || 'Failed to generate credit score');
+        }
 
-       Your task is to:
-       1.  Identify patterns in income (e.g., from M-Shwari, business payments).
-       2.  Identify patterns in expenses (e.g., payments to suppliers, utility bills like KPLC).
-       3.  Note any existing loan repayments (e.g., to Fuliza, M-Shwari, Tala).
-       4.  Identify any high-risk behavior like frequent transactions with betting companies (e.g., SportPesa).
-       5.  Based on the overall financial health, calculate a new credit profile for the farmer.
+        const result = await response.json();
 
-       Provide the output as a JSON object with the following keys: "loanEligibility" (KES), "repaymentAbilityScore" (0-100), "riskScore" (0-100, lower is better), and "summary" (a brief analysis).
-   `;
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Invalid response from AI service');
+        }
 
-   try {
-       const response = await ai.models.generateContent({
-           model: "gemini-2.5-flash",
-           contents: prompt,
-           config: {
-               responseMimeType: "application/json",
-               responseSchema: creditScoreSchema,
-               temperature: 0.2, // Lower temperature for more deterministic financial analysis
-           },
-       });
-
-       const text = response.text;
-       const profile = JSON.parse(text);
-
-       if (profile.loanEligibility !== undefined && profile.repaymentAbilityScore !== undefined && profile.riskScore !== undefined && profile.summary) {
-           return profile as CreditProfile;
-       } else {
-           console.error("Received malformed credit profile from AI:", profile);
-           throw new Error("AI response was not in the expected format.");
-       }
-   } catch (error) {
-       console.error("Error fetching credit score from Gemini API:", error);
-       throw new Error("Failed to generate AI credit score. Please check your connection or API key and try again.");
-   }
+        return result.data as CreditProfile;
+    } catch (error: any) {
+        console.error('Error scoring M-Pesa statement:', error);
+        throw new Error(error.message || 'Failed to generate credit score. Please try again.');
+    }
 };

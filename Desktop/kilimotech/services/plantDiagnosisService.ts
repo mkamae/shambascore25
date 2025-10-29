@@ -5,8 +5,14 @@
  * Uses Google Gemini AI for image analysis and disease detection
  */
 
+/**
+ * Plant Diagnosis Service - Frontend Client
+ * 
+ * This service now calls secure backend API routes instead of using API keys directly.
+ * The API key is stored server-side for security.
+ */
+
 import { supabase } from './supabaseClient';
-import { GoogleGenAI } from '@google/genai';
 
 export interface PlantDiagnosis {
     id: string;
@@ -57,28 +63,7 @@ export interface DiagnosisResult {
     additionalNotes?: string;
 }
 
-// Lazy initialization for Gemini client
-let aiInstance: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
-    if (aiInstance) {
-        return aiInstance;
-    }
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey === undefined) {
-        throw new Error('Gemini API key is missing. Please check your environment variables.');
-    }
-
-    try {
-        aiInstance = new GoogleGenAI({ apiKey });
-        return aiInstance;
-    } catch (error) {
-        console.error('Failed to initialize Gemini AI:', error);
-        throw new Error('Failed to initialize AI client.');
-    }
-}
+// Removed: Gemini client initialization now handled server-side
 
 /**
  * Convert image file to base64 for AI processing
@@ -101,46 +86,42 @@ function fileToBase64(file: File | Blob): Promise<string> {
 }
 
 /**
- * Analyze plant image for disease diagnosis using Gemini AI
+ * Analyze plant image for disease diagnosis via secure backend API
  */
 export async function diagnosePlantImage(
     request: DiagnosisRequest
 ): Promise<DiagnosisResult> {
-    const ai = getGeminiClient();
-
     try {
         // Convert image to base64
         const imageBase64 = await fileToBase64(request.imageFile);
 
-        // Build context-aware prompt
-        const contextPrompt = buildDiagnosisPrompt(request);
-
-        // Call Gemini with image
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [
-                {
-                    text: contextPrompt
-                },
-                {
-                    inlineData: {
-                        data: imageBase64,
-                        mimeType: request.imageFile.type || 'image/jpeg'
-                    }
-                }
-            ],
-            config: {
-                temperature: 0.3, // Lower temperature for more consistent medical/agricultural analysis
-                maxOutputTokens: 1500
-            }
+        // Call secure backend API
+        const response = await fetch('/api/gemini/plant-diagnosis', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                imageBase64,
+                imageMimeType: request.imageFile.type || 'image/jpeg',
+                cropType: request.cropType,
+                plantPart: request.plantPart,
+                farmerLocation: request.farmerLocation
+            })
         });
 
-        const aiResponse = response.text;
-        
-        // Parse structured response
-        const diagnosis = parseDiagnosisResponse(aiResponse, request);
-        
-        return diagnosis;
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Failed to diagnose plant' }));
+            throw new Error(error.error || 'Failed to diagnose plant image');
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Invalid response from AI service');
+        }
+
+        return result.data as DiagnosisResult;
     } catch (error: any) {
         console.error('Error in diagnosePlantImage:', error);
         throw new Error(error.message || 'Failed to diagnose plant image. Please try again.');

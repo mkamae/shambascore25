@@ -7,10 +7,16 @@
  * - Context-aware advice based on farmer profile
  */
 
+/**
+ * Chatbot Service - Frontend Client
+ * 
+ * This service now calls secure backend API routes instead of using API keys directly.
+ * The API key is stored server-side for security.
+ */
+
 import { supabase } from './supabaseClient';
 import { Farmer } from '../types';
 import { fetchFarmerProfile } from './farmerProfileService';
-import { GoogleGenAI } from '@google/genai';
 
 export interface ChatMessage {
     id: string;
@@ -22,77 +28,42 @@ export interface ChatMessage {
     createdAt: string;
 }
 
-// Lazy initialization for Gemini client (reusing pattern from geminiService)
-let aiInstance: GoogleGenAI | null = null;
-
-function getGeminiClient(): GoogleGenAI {
-    if (aiInstance) {
-        return aiInstance;
-    }
-
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey === undefined) {
-        console.error('❌ GEMINI API KEY MISSING!');
-        throw new Error('Gemini API key is missing. Please check your environment variables.');
-    }
-
-    try {
-        aiInstance = new GoogleGenAI({ apiKey });
-        console.log('✅ Chatbot Gemini AI initialized successfully');
-        return aiInstance;
-    } catch (error) {
-        console.error('❌ Failed to initialize Gemini AI:', error);
-        throw new Error('Failed to initialize AI client.');
-    }
-}
-
 /**
- * Generate AI response based on farmer's question and profile
+ * Generate AI response via secure backend API
  */
 async function generateAIResponse(
     question: string,
     farmer: Farmer,
     farmerProfile: any
 ): Promise<string> {
-    const ai = getGeminiClient();
-
-    // Build context from farmer profile
-    const contextPrompt = buildContextPrompt(farmer, farmerProfile);
-
-    const systemPrompt = `You are FarmAdvisorAI, an expert agricultural and financial assistant for smallholder farmers in Kenya. 
-
-Your role:
-- Provide simple, actionable guidance based on production data, risk level, and local conditions
-- Keep responses under 100 words and conversational
-- Always encourage sustainable farming practices
-- Be supportive and encouraging, especially for high-risk farmers
-- Reference specific data from the farmer's profile when relevant
-
-${contextPrompt}
-
-Remember:
-- If risk is low → encourage growth and sustainable investments
-- If risk is high → suggest saving tips, input optimization, or joining insurance
-- If rainfall is low → suggest drought-resistant crops or irrigation methods
-- Always provide practical, actionable advice
-- Use simple language that farmers can understand
-- Be empathetic and understanding`;
-
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: `${systemPrompt}\n\nFarmer's Question: ${question}\n\nPlease provide helpful advice:`,
-            config: {
-                temperature: 0.7,
-                maxOutputTokens: 300,
+        const response = await fetch('/api/gemini/chatbot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
             },
+            body: JSON.stringify({
+                question,
+                farmer,
+                farmerProfile
+            })
         });
 
-        return response.text || 'I apologize, but I couldn\'t generate a response. Please try again.';
-    } catch (error) {
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({ error: 'Failed to get response' }));
+            throw new Error(error.error || 'Failed to generate AI response');
+        }
+
+        const result = await response.json();
+
+        if (!result.success || !result.data) {
+            throw new Error(result.error || 'Invalid response from AI service');
+        }
+
+        return result.data.response;
+    } catch (error: any) {
         console.error('Error generating AI response:', error);
-        throw new Error('Failed to generate AI response. Please check your API key and try again.');
+        throw new Error(error.message || 'Failed to generate AI response. Please try again.');
     }
 }
 
