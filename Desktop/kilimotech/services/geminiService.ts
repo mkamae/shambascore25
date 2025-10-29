@@ -1,14 +1,41 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Farmer, AIInsights, CreditProfile } from '../types';
 
-// The API key is loaded from environment variables (Vite uses import.meta.env)
+// ============================================
+// ENVIRONMENT VARIABLE SETUP
+// ============================================
+// Vite exposes env vars via import.meta.env
+// Only variables prefixed with VITE_ are available in browser
+// ============================================
+
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-if (!apiKey) {
-    throw new Error('Missing Gemini API key. Please set VITE_GEMINI_API_KEY in your .env.local file');
+// Validate API key is present
+if (!apiKey || apiKey === 'undefined' || apiKey === '') {
+    console.error('❌ GEMINI API KEY MISSING!');
+    console.error('Expected: VITE_GEMINI_API_KEY');
+    console.error('Current value:', apiKey);
+    console.error('All env vars:', import.meta.env);
+    throw new Error(
+        '🔴 Gemini API key is missing!\n\n' +
+        'Steps to fix:\n' +
+        '1. Check .env.local exists in project root\n' +
+        '2. Verify it contains: VITE_GEMINI_API_KEY=your_key\n' +
+        '3. Restart dev server: npm run dev\n' +
+        '4. Clear browser cache: Ctrl+Shift+R\n\n' +
+        'For Vercel deployment, add VITE_GEMINI_API_KEY to environment variables.'
+    );
 }
 
-const ai = new GoogleGenAI({ apiKey });
+// Initialize Google Gemini AI client
+let ai: GoogleGenAI;
+try {
+    ai = new GoogleGenAI({ apiKey });
+    console.log('✅ Gemini AI initialized successfully');
+} catch (error) {
+    console.error('❌ Failed to initialize Gemini AI:', error);
+    throw new Error('Failed to initialize Gemini AI client. Check API key format.');
+}
 
 const insightsSchema = {
     type: Type.OBJECT,
