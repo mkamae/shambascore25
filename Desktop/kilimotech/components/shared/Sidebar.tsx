@@ -55,6 +55,7 @@ const navItems: NavItem[] = [
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onClose, onLogout }) => {
+    const [filter, setFilter] = React.useState('');
     const handleNavClick = (tab: string) => {
         setActiveTab(tab);
         // Close sidebar on mobile after navigation
@@ -62,6 +63,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
             onClose();
         }
     };
+
+    const filteredItems = React.useMemo(() => {
+        const q = filter.toLowerCase().trim();
+        if (!q) return navItems;
+        return navItems.filter(item =>
+            item.label.toLowerCase().includes(q) ||
+            (item.description || '').toLowerCase().includes(q) ||
+            item.id.toLowerCase().includes(q)
+        );
+    }, [filter]);
 
     return (
         <>
@@ -104,9 +115,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
                     <p className="text-xs text-gray-600 mt-1">Farmer Dashboard</p>
                 </div>
 
+                {/* Quick Filter */}
+                <div className="p-4 border-b border-gray-200">
+                    <input
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                        placeholder="Search..."
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        aria-label="Filter navigation"
+                    />
+                </div>
+
                 {/* Navigation Items */}
                 <nav className="p-4 space-y-2 mt-4 flex-1 overflow-y-auto">
-                    {navItems.map((item) => {
+                    {filteredItems.map((item) => {
                         const isActive = activeTab === item.id;
                         return (
                             <button
