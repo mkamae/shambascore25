@@ -1,51 +1,40 @@
--- M-Pesa Wallet Schema
--- Run this in your Supabase SQL Editor to create wallet and transaction tables
+-- M-Pesa Wallet Schema (Simplified)
+-- Run this ENTIRE file in Supabase SQL Editor
 
--- Create wallet table
+-- Step 1: Create wallets table
 CREATE TABLE IF NOT EXISTS wallets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     farmer_id UUID NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    -- Wallet Details
     balance NUMERIC(12, 2) DEFAULT 0.0 CHECK (balance >= 0),
     currency TEXT DEFAULT 'KES',
     phone_number TEXT NOT NULL,
     status TEXT DEFAULT 'Active' CHECK (status IN ('Active', 'Suspended', 'Closed')),
-    
-    -- Unique constraint: one wallet per farmer
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(farmer_id)
 );
 
--- Create wallet_transactions table
+-- Step 2: Create wallet_transactions table
 CREATE TABLE IF NOT EXISTS wallet_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    -- Transaction Details
     type TEXT NOT NULL CHECK (type IN ('deposit', 'withdrawal', 'payment_in', 'payment_out')),
     amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
     balance_after NUMERIC(12, 2) NOT NULL,
-    
-    -- Transaction Metadata
     description TEXT,
-    reference TEXT, -- M-Pesa transaction reference
-    phone_number TEXT, -- Sender/recipient phone number
+    reference TEXT,
+    phone_number TEXT,
     status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'completed', 'failed')),
-    
-    -- Additional metadata
-    metadata JSONB DEFAULT '{}'
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes
+-- Step 3: Create indexes
 CREATE INDEX IF NOT EXISTS idx_wallets_farmer_id ON wallets(farmer_id);
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_wallet_id ON wallet_transactions(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_created_at ON wallet_transactions(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_wallet_transactions_type ON wallet_transactions(type);
 
--- Function to automatically update updated_at timestamp
+-- Step 4: Create update function
 CREATE OR REPLACE FUNCTION update_wallets_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -54,52 +43,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger to update updated_at on row update
+-- Step 5: Create trigger
 DROP TRIGGER IF EXISTS trigger_update_wallets_updated_at ON wallets;
 CREATE TRIGGER trigger_update_wallets_updated_at
     BEFORE UPDATE ON wallets
     FOR EACH ROW
     EXECUTE FUNCTION update_wallets_updated_at();
 
--- Enable Row Level Security (RLS)
+-- Step 6: Enable RLS
 ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
 
--- Policy: Farmers can view their own wallet
+-- Step 7: Create RLS policies
 DROP POLICY IF EXISTS "Farmers can view their own wallet" ON wallets;
 CREATE POLICY "Farmers can view their own wallet"
-    ON wallets
-    FOR SELECT
-    USING (true); -- Adjust based on your auth setup
+    ON wallets FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Farmers can insert their own wallet" ON wallets;
 CREATE POLICY "Farmers can insert their own wallet"
-    ON wallets
-    FOR INSERT
-    WITH CHECK (true);
+    ON wallets FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Farmers can update their own wallet" ON wallets;
 CREATE POLICY "Farmers can update their own wallet"
-    ON wallets
-    FOR UPDATE
-    USING (true)
-    WITH CHECK (true);
+    ON wallets FOR UPDATE USING (true) WITH CHECK (true);
 
--- Policy: Farmers can view their own transactions
 DROP POLICY IF EXISTS "Farmers can view their own transactions" ON wallet_transactions;
 CREATE POLICY "Farmers can view their own transactions"
-    ON wallet_transactions
-    FOR SELECT
-    USING (true);
+    ON wallet_transactions FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Farmers can insert their own transactions" ON wallet_transactions;
 CREATE POLICY "Farmers can insert their own transactions"
-    ON wallet_transactions
-    FOR INSERT
-    WITH CHECK (true);
-
-COMMENT ON TABLE wallets IS 'M-Pesa wallet simulation for farmers';
-COMMENT ON TABLE wallet_transactions IS 'Transaction history for wallet operations';
-COMMENT ON COLUMN wallet_transactions.type IS 'deposit: Add money, withdrawal: Remove money, payment_in: Receive payment, payment_out: Send payment';
-COMMENT ON COLUMN wallet_transactions.reference IS 'M-Pesa transaction reference (simulated)';
+    ON wallet_transactions FOR INSERT WITH CHECK (true);
 
