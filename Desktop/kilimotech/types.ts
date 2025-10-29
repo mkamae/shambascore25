@@ -43,3 +43,31 @@ export interface Farmer {
     mpesaStatement: MpesaStatement | null;
     insights: AIInsights | null;
 }
+
+// Weather forecast types
+export interface WeatherForecast {
+    date: string;
+    temperature: {
+        high: number;
+        low: number;
+        unit: 'celsius' | 'fahrenheit';
+    };
+    precipitation: {
+        probability: number;
+        amount?: number;
+    };
+    wind: {
+        speed: number;
+        direction?: number;
+    };
+    condition: string;
+    icon?: string;
+}
+
+export interface WeatherLocation {
+    name: string;
+    coordinates: {
+        lat: number;
+        lon: number;
+    };
+}

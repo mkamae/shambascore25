@@ -8,6 +8,7 @@ import CreditSimulator from './CreditSimulator';
 import InsuranceModule from './InsuranceModule';
 import MpesaUpload from './MpesaUpload';
 import FinancialPartners from './FinancialPartners';
+import WeatherForecast from './WeatherForecast';
 
 interface FarmerViewProps {
     farmer: Farmer;
@@ -31,14 +32,17 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer }) => {
             </div>
 
             {activeTab === 'Dashboard' && (
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                        <AIInsights farmer={farmer} />
+                 <div className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2">
+                            <AIInsights farmer={farmer} />
+                        </div>
+                        <div className="space-y-6">
+                            <CreditSimulator creditProfile={farmer.creditProfile} />
+                            <InsuranceModule insurance={farmer.insurance} />
+                        </div>
                     </div>
-                    <div className="space-y-6">
-                        <CreditSimulator creditProfile={farmer.creditProfile} />
-                        <InsuranceModule insurance={farmer.insurance} />
-                    </div>
+                    <WeatherForecast farmer={farmer} />
                 </div>
             )}
             
