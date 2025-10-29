@@ -23,9 +23,22 @@ This creates:
 
 ## 🔧 API Configuration
 
+### Service Account
+
+**Email**: `earth-engine@kiimotech.iam.gserviceaccount.com`  
+**Project**: Kiimotech
+
 ### Current Implementation
 
 The API route (`api/earth-engine.ts`) currently uses **simulated data** for demonstration purposes. This allows the feature to work immediately without Google Earth Engine authentication.
+
+### Production Setup
+
+For real Google Earth Engine integration, see `README_GEE_INTEGRATION.md` for detailed instructions on:
+- Setting up Python backend service
+- Using Supabase Edge Functions
+- Authenticating with service account
+- Processing real satellite imagery
 
 ### For Production with Real Google Earth Engine
 

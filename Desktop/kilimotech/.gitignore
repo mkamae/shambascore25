@@ -41,3 +41,9 @@ Thumbs.db
 # Misc
 kilimotech.zip
 kilimotech/
+
+# Google Earth Engine Service Account Keys
+*-service-account-key.json
+service-account-key.json
+*.gserviceaccount.json
+gee-credentials.json

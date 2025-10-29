@@ -2,10 +2,16 @@
  * Google Earth Engine API Route
  * 
  * Vercel Serverless Function for processing satellite imagery
- * Uses Google Earth Engine JavaScript API
  * 
- * Note: This requires Google Earth Engine service account credentials
- * For production, use a backend service that authenticates with GEE service account
+ * Service Account: earth-engine@kiimotech.iam.gserviceaccount.com
+ * 
+ * Note: Google Earth Engine primarily uses Python for service account auth.
+ * Current implementation uses simulated data.
+ * 
+ * For production with real GEE:
+ * 1. Create a Python microservice that authenticates with service account
+ * 2. Call that service from this route
+ * 3. OR use Supabase Edge Function (Python) instead
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
