@@ -17,22 +17,32 @@ const Login: React.FC = () => {
                 <div className="text-center">
                     <LeafIcon className="w-16 h-16 mx-auto text-green-600" />
                     <h1 className="mt-4 text-4xl font-extrabold text-green-800">Welcome to KilimoTech</h1>
-                    <p className="mt-2 text-lg text-gray-600">Empowering farmers with data and insights.</p>
+                    <p className="mt-2 text-lg text-gray-600">Empowering farmers with AI-powered insights and financial access.</p>
                 </div>
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-center text-gray-700">Choose your role to continue</h2>
+                <div className="space-y-6">
+                    <p className="text-center text-gray-700">
+                        Your smart farming companion for better yields, risk management, and financial opportunities.
+                    </p>
                     <button
                         onClick={() => login('farmer')}
-                        className="w-full px-5 py-3 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 duration-300"
+                        className="w-full px-6 py-4 text-xl font-bold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 duration-300 shadow-lg"
                     >
-                        I am a Farmer
+                        Get Started
                     </button>
-                    <button
-                        onClick={() => login('partner')}
-                        className="w-full px-5 py-3 text-lg font-semibold text-green-700 bg-green-100 rounded-lg hover:bg-green-200 focus:outline-none focus:ring-4 focus:ring-green-300 transition-transform transform hover:scale-105 duration-300"
-                    >
-                        I am a Partner (Lender/Insurer)
-                    </button>
+                    <div className="grid grid-cols-3 gap-4 mt-6 text-center">
+                        <div className="p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-700">🌱</div>
+                            <div className="text-xs text-gray-600 mt-1">AI Insights</div>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-700">💰</div>
+                            <div className="text-xs text-gray-600 mt-1">Credit Access</div>
+                        </div>
+                        <div className="p-3 bg-green-50 rounded-lg">
+                            <div className="text-2xl font-bold text-green-700">📊</div>
+                            <div className="text-xs text-gray-600 mt-1">Farm Analytics</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

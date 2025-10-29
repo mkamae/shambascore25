@@ -25,12 +25,9 @@ KilimoTech is an innovative agricultural finance platform that empowers smallhol
 - Loan eligibility recommendations
 - M-Pesa transaction history upload
 - Farm data management dashboard
-
-### For Financial Partners
-- Comprehensive farmer profiles
-- Credit scoring and risk assessment
-- Real-time data access
-- Portfolio management
+- Credit simulator for loan planning
+- Insurance status tracking
+- Financial analytics and reports
 
 ### AI Capabilities
 - **Yield Optimization** - Personalized advice based on crop type, soil health, and rainfall

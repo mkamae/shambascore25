@@ -1,4 +1,4 @@
-export type UserType = 'farmer' | 'partner' | null;
+export type UserType = 'farmer' | null;
 
 export interface FarmData {
     cropType: string;

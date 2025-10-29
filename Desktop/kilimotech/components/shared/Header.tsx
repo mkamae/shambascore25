@@ -1,9 +1,8 @@
 import React from 'react';
-import { UserType } from '../../types';
 
 interface HeaderProps {
-    userType: UserType;
     onLogout: () => void;
+    farmerName?: string;
 }
 
 const LeafIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -13,18 +12,21 @@ const LeafIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     </svg>
 );
 
-
-const Header: React.FC<HeaderProps> = ({ userType, onLogout }) => {
+const Header: React.FC<HeaderProps> = ({ onLogout, farmerName }) => {
     return (
         <header className="bg-white shadow-md">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
                         <LeafIcon className="h-8 w-8 text-green-600" />
-                        <h1 className="ml-3 text-2xl font-bold text-green-800">KilimoTech</h1>
+                        <div className="ml-3">
+                            <h1 className="text-2xl font-bold text-green-800">KilimoTech</h1>
+                            {farmerName && (
+                                <p className="text-xs text-gray-500">Welcome, {farmerName}</p>
+                            )}
+                        </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                         <span className="text-sm font-medium text-gray-500 capitalize">{userType} View</span>
                         <button
                             onClick={onLogout}
                             className="px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out"
