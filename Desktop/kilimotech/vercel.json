@@ -5,6 +5,7 @@
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "framework": null,
+  "nodeVersion": "18.x",
   "rewrites": [
     {
       "source": "/(.*)",

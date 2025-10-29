@@ -37,8 +37,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const [loading, setLoading] = useState<boolean>(true);
     const [authUser, setAuthUser] = useState<User | null>(null);
 
-    // Check for existing session on mount
+    // Check for existing session on mount (only in browser)
     useEffect(() => {
+        // Skip auth initialization during build/SSR
+        if (typeof window === 'undefined') {
+            setLoading(false);
+            return;
+        }
+
         const initAuth = async () => {
             try {
                 const session = await getSession();
@@ -61,24 +67,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         initAuth();
 
         // Listen for auth state changes
-        const { data: { subscription } } = onAuthStateChange((user) => {
-            setAuthUser(user);
-            if (user && !userType) {
-                login('farmer');
-            } else if (!user) {
-                setUserType(null);
-                setSelectedFarmer(null);
-            }
-        });
+        let subscription: { unsubscribe: () => void } | null = null;
+        
+        try {
+            const authSubscription = onAuthStateChange((user) => {
+                setAuthUser(user);
+                if (user && !userType) {
+                    login('farmer');
+                } else if (!user) {
+                    setUserType(null);
+                    setSelectedFarmer(null);
+                }
+            });
+            subscription = authSubscription.data?.subscription || null;
+        } catch (error) {
+            console.error('Auth state listener error:', error);
+        }
 
         return () => {
-            subscription.unsubscribe();
+            if (subscription) {
+                subscription.unsubscribe();
+            }
         };
     }, []);
 
     // Fetch farmers from Supabase on mount and when authenticated
     useEffect(() => {
-        if (authUser) {
+        if (authUser && typeof window !== 'undefined') {
             refreshFarmers();
         }
     }, [authUser]);
@@ -107,13 +122,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUserType(type);
         if (type === 'farmer') {
             // Try to fetch from Supabase first
-            const farmer = await fetchFarmerById(farmerId);
-            if (farmer) {
-                setSelectedFarmer(farmer);
-            } else {
-                const localFarmer = farmers.find(f => f.id === farmerId);
-                setSelectedFarmer(localFarmer || farmers[0]);
+            try {
+                const farmer = await fetchFarmerById(farmerId);
+                if (farmer) {
+                    setSelectedFarmer(farmer);
+                    return;
+                }
+            } catch (error) {
+                console.error('Error fetching farmer:', error);
             }
+            // Fallback to local data
+            const localFarmer = farmers.find(f => f.id === farmerId);
+            setSelectedFarmer(localFarmer || farmers[0]);
         }
     };
 
@@ -131,23 +151,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const selectFarmer = async (farmerId: string) => {
         // Try to fetch fresh data from Supabase
-        const farmer = await fetchFarmerById(farmerId);
-        if (farmer) {
-            setSelectedFarmer(farmer);
-            // Update local farmers list
-            setFarmers(prevFarmers =>
-                prevFarmers.map(f => f.id === farmerId ? farmer : f)
-            );
-        } else {
-            // Fallback to local data
-            const localFarmer = farmers.find(f => f.id === farmerId);
-            setSelectedFarmer(localFarmer || null);
+        try {
+            const farmer = await fetchFarmerById(farmerId);
+            if (farmer) {
+                setSelectedFarmer(farmer);
+                // Update local farmers list
+                setFarmers(prevFarmers =>
+                    prevFarmers.map(f => f.id === farmerId ? farmer : f)
+                );
+                return;
+            }
+        } catch (error) {
+            console.error('Error fetching farmer:', error);
         }
+        // Fallback to local data
+        const localFarmer = farmers.find(f => f.id === farmerId);
+        setSelectedFarmer(localFarmer || null);
     };
 
     const updateFarmerInsights = async (farmerId: string, insights: AIInsights) => {
-        // Update in Supabase
-        await updateAIInsights(farmerId, insights);
+        try {
+            // Update in Supabase
+            await updateAIInsights(farmerId, insights);
+        } catch (error) {
+            console.error('Error updating insights:', error);
+        }
         
         // Update local state
         setFarmers(prevFarmers =>
@@ -161,8 +189,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const updateFarmerData = async (farmerId: string, data: FarmData) => {
-        // Update in Supabase
-        await updateFarmDataService(farmerId, data);
+        try {
+            // Update in Supabase
+            await updateFarmDataService(farmerId, data);
+        } catch (error) {
+            console.error('Error updating farm data:', error);
+        }
         
         // Update local state
         setFarmers(prevFarmers =>
@@ -176,8 +208,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const updateMpesaStatement = async (farmerId: string, statement: MpesaStatement) => {
-        // Update in Supabase
-        await updateMpesaStatementService(farmerId, statement);
+        try {
+            // Update in Supabase
+            await updateMpesaStatementService(farmerId, statement);
+        } catch (error) {
+            console.error('Error updating M-Pesa statement:', error);
+        }
         
         // Update local state
         setFarmers(prevFarmers =>
@@ -191,8 +227,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     const updateCreditProfile = async (farmerId: string, profile: CreditProfile) => {
-        // Update in Supabase
-        await updateCreditProfileService(farmerId, profile);
+        try {
+            // Update in Supabase
+            await updateCreditProfileService(farmerId, profile);
+        } catch (error) {
+            console.error('Error updating credit profile:', error);
+        }
         
         // Update local state
         setFarmers(prevFarmers =>
