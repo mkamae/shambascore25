@@ -10,6 +10,7 @@ import {
     updateAIInsights
 } from '../services/farmerService';
 import { getCurrentUser, getSession, onAuthStateChange, signOut } from '../services/authService';
+import { getOrCreateFarmerForUser } from '../services/farmerAuthService';
 import { User } from '@supabase/supabase-js';
 
 interface AppContextType {
@@ -94,7 +95,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Fetch farmers from Supabase on mount and when authenticated
     useEffect(() => {
         if (authUser && typeof window !== 'undefined') {
-            refreshFarmers();
+            // First ensure user has a farmer record, then refresh
+            const setupFarmer = async () => {
+                try {
+                    const farmerId = await getOrCreateFarmerForUser(authUser);
+                    if (farmerId) {
+                        // Load the farmer we just created/linked
+                        const farmer = await fetchFarmerById(farmerId);
+                        if (farmer) {
+                            setSelectedFarmer(farmer);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error setting up farmer for user:', error);
+                }
+                // Refresh all farmers
+                await refreshFarmers();
+            };
+            setupFarmer();
         }
     }, [authUser]);
 
@@ -118,22 +136,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     };
 
-    const login = async (type: UserType, farmerId: string = 'farmer-1') => {
+    const login = async (type: UserType, farmerId?: string) => {
         setUserType(type);
         if (type === 'farmer') {
-            // Try to fetch from Supabase first
-            try {
-                const farmer = await fetchFarmerById(farmerId);
-                if (farmer) {
-                    setSelectedFarmer(farmer);
-                    return;
+            // If farmerId provided, try to fetch it
+            if (farmerId) {
+                try {
+                    const farmer = await fetchFarmerById(farmerId);
+                    if (farmer) {
+                        setSelectedFarmer(farmer);
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error fetching farmer:', error);
                 }
-            } catch (error) {
-                console.error('Error fetching farmer:', error);
             }
-            // Fallback to local data
-            const localFarmer = farmers.find(f => f.id === farmerId);
-            setSelectedFarmer(localFarmer || farmers[0]);
+
+            // If authenticated user exists, get/create their farmer record
+            if (authUser) {
+                try {
+                    const userFarmerId = await getOrCreateFarmerForUser(authUser);
+                    if (userFarmerId) {
+                        const farmer = await fetchFarmerById(userFarmerId);
+                        if (farmer) {
+                            setSelectedFarmer(farmer);
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error getting farmer for authenticated user:', error);
+                }
+            }
+
+            // Fallback: Use first farmer from Supabase or mock data
+            if (farmers.length > 0) {
+                // Prefer Supabase farmers (UUIDs) over mock farmers (string IDs)
+                const supabaseFarmer = farmers.find(f => 
+                    f.id && f.id.includes('-') && f.id.length > 20 // UUID check
+                );
+                setSelectedFarmer(supabaseFarmer || farmers[0]);
+            }
         }
     };
 
