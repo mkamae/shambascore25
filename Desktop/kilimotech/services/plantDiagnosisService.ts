@@ -115,8 +115,10 @@ export async function diagnosePlantImage(
             if (response.status === 404 && import.meta.env.DEV) {
                 throw new Error('API route not found. In local development, use `npm run dev:api` or `vercel dev` to enable API routes. Regular `npm run dev` does not support API routes.');
             }
-            
             const error = await response.json().catch(() => ({ error: 'Failed to diagnose plant' }));
+            if (response.status === 500 && typeof error.error === 'string' && error.error.includes('GEMINI_API_KEY')) {
+                throw new Error('Server AI key missing. Set GEMINI_API_KEY in your .env (local) and Vercel project variables.');
+            }
             throw new Error(error.error || 'Failed to diagnose plant image');
         }
 

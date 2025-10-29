@@ -148,11 +148,12 @@ export default async function handler(
     req: VercelRequest,
     res: VercelResponse<PlantDiagnosisResponse>
 ) {
+    if (req.method === 'GET') {
+        const hasKey = !!process.env.GEMINI_API_KEY;
+        return res.status(200).json({ success: true, data: { diseaseName: hasKey ? 'OK' : 'MISSING_KEY', confidenceScore: 100, severity: 'Low', possibleCauses: [], symptomsDescription: 'Health check', preventiveMeasures: '', seekAgronomist: false, urgencyLevel: 'Low' } });
+    }
     if (req.method !== 'POST') {
-        return res.status(405).json({
-            success: false,
-            error: 'Method not allowed. Use POST.'
-        });
+        return res.status(405).json({ success: false, error: 'Method not allowed. Use POST.' });
     }
 
     try {
@@ -160,10 +161,7 @@ export default async function handler(
         
         if (!apiKey) {
             console.error('GEMINI_API_KEY not found in environment variables');
-            return res.status(500).json({
-                success: false,
-                error: 'AI service configuration error'
-            });
+            return res.status(500).json({ success: false, error: 'AI service configuration error: Missing GEMINI_API_KEY' });
         }
 
         const { imageBase64, imageMimeType, cropType, plantPart, farmerLocation }: PlantDiagnosisRequest = req.body;
