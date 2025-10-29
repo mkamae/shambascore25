@@ -1,8 +1,14 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
   "routes": [
     {
       "handle": "filesystem"
@@ -12,6 +18,9 @@
       "dest": "/index.html"
     }
   ],
+  "env": {
+    "NODE_VERSION": "18"
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -32,4 +41,3 @@
     }
   ]
 }
-
