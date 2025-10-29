@@ -73,6 +73,34 @@ export interface FarmHealthRecord {
     updatedAt: string;
 }
 
+// UUID validation helper
+function isValidUUID(value: string | undefined | null): boolean {
+    return !!value && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(value);
+}
+
+// Provide a stable mock UUID in dev when no valid farmerId is available
+function getSafeFarmerId(original: string | undefined | null): string | null {
+    if (isValidUUID(original)) return original as string;
+    if (import.meta && import.meta.env && import.meta.env.DEV) {
+        try {
+            const key = 'mock_farmer_uuid';
+            const existing = typeof window !== 'undefined' ? window.localStorage.getItem(key) : null;
+            if (existing && isValidUUID(existing)) return existing;
+            // Lazy load uuid only in dev
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const { v4 } = require('uuid');
+            const generated = v4();
+            if (typeof window !== 'undefined') window.localStorage.setItem(key, generated);
+            return generated;
+        } catch (e) {
+            console.warn('Could not generate mock UUID in dev environment:', e);
+            return null;
+        }
+    }
+    return null;
+}
+
 /**
  * Fetch farm health data from Earth Engine API
  */
@@ -164,10 +192,15 @@ export async function saveFarmHealth(
     healthData: FarmHealthData
 ): Promise<FarmHealthRecord | null> {
     try {
+        const safeFarmerId = getSafeFarmerId(farmerId);
+        if (!safeFarmerId) {
+            console.warn('saveFarmHealth skipped: invalid farmerId');
+            return null;
+        }
         const { data, error } = await supabase
             .from('farm_health_scores')
             .insert({
-                farmer_id: farmerId,
+                farmer_id: safeFarmerId,
                 latitude: request.latitude,
                 longitude: request.longitude,
                 start_date: request.startDate,
@@ -229,6 +262,10 @@ export async function getFarmHealthHistory(
     limit: number = 10
 ): Promise<FarmHealthRecord[]> {
     try {
+        if (!isValidUUID(farmerId)) {
+            console.warn('getFarmHealthHistory skipped: invalid farmerId');
+            return [];
+        }
         const { data, error } = await supabase
             .from('farm_health_scores')
             .select('*')

@@ -57,7 +57,7 @@ export async function getOrCreateFarmerForUser(user: User): Promise<string | nul
         const farmerName = user.user_metadata?.name || user.email?.split('@')[0] || 'Farmer';
         const farmerPhone = user.user_metadata?.phone || user.phone || '+254700000000';
 
-        // Create farmer record (email is optional if column exists)
+        // Create farmer record (email optional; we will retry without if column doesn't exist)
         const farmerData: any = {
             name: farmerName,
             phone: farmerPhone,
@@ -70,24 +70,48 @@ export async function getOrCreateFarmerForUser(user: User): Promise<string | nul
             farmerData.email = user.email;
         }
 
-        const { data: newFarmer, error: createError } = await supabase
-            .from('farmers')
-            .insert(farmerData)
-            .select('id')
-            .single();
+        // Attempt insert (with email if present). If the email column doesn't exist, retry without it.
+        let newFarmerId: string | null = null;
+        {
+            const { data, error } = await supabase
+                .from('farmers')
+                .insert(farmerData)
+                .select('id')
+                .single();
 
-        if (createError || !newFarmer) {
-            console.error('Error creating farmer record:', createError);
-            return null;
+            if (!error && data?.id) {
+                newFarmerId = data.id;
+            } else if (error && (error.message?.includes('email') || error.code === 'PGRST204')) {
+                // Remove email and retry
+                if ('email' in farmerData) {
+                    delete farmerData.email;
+                }
+                const { data: retryData, error: retryError } = await supabase
+                    .from('farmers')
+                    .insert(farmerData)
+                    .select('id')
+                    .single();
+                if (!retryError && retryData?.id) {
+                    newFarmerId = retryData.id;
+                } else {
+                    console.error('Error creating farmer record (retry):', retryError || error);
+                    return null;
+                }
+            } else if (error) {
+                console.error('Error creating farmer record:', error);
+                return null;
+            }
         }
 
         // Update user metadata with farmer_id
-        await supabase.auth.updateUser({
-            data: { farmer_id: newFarmer.id }
-        });
+        if (newFarmerId) {
+            await supabase.auth.updateUser({
+                data: { farmer_id: newFarmerId }
+            });
+        }
 
-        console.log('✅ Created farmer record for user:', newFarmer.id);
-        return newFarmer.id;
+        console.log('✅ Created farmer record for user:', newFarmerId);
+        return newFarmerId;
     } catch (error) {
         console.error('Error in getOrCreateFarmerForUser:', error);
         return null;
