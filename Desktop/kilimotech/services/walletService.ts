@@ -35,10 +35,36 @@ export interface WalletTransaction {
 }
 
 /**
+ * Check if a string is a valid UUID format
+ */
+function isValidUUID(str: string): boolean {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+}
+
+/**
  * Get or create wallet for farmer
  */
 export async function getOrCreateWallet(farmerId: string, phoneNumber: string): Promise<Wallet | null> {
     try {
+        // Validate farmer ID is a UUID (required by database schema)
+        if (!isValidUUID(farmerId)) {
+            console.warn(`Invalid farmer ID format (expected UUID): ${farmerId}. Wallet feature requires a farmer from Supabase database.`);
+            throw new Error('Farmer ID must be a valid UUID. Please ensure you are using a farmer from the database, not mock data.');
+        }
+
+        // Verify farmer exists in Supabase
+        const { data: farmer, error: farmerError } = await supabase
+            .from('farmers')
+            .select('id')
+            .eq('id', farmerId)
+            .single();
+
+        if (farmerError || !farmer) {
+            console.warn(`Farmer not found in database: ${farmerId}`);
+            throw new Error('Farmer not found in database. Please ensure the farmer exists in Supabase.');
+        }
+
         // Try to fetch existing wallet
         const { data: existing, error: fetchError } = await supabase
             .from('wallets')
@@ -46,6 +72,7 @@ export async function getOrCreateWallet(farmerId: string, phoneNumber: string): 
             .eq('farmer_id', farmerId)
             .single();
 
+        // If wallet exists, return it
         if (existing && !fetchError) {
             return {
                 id: existing.id,
@@ -59,37 +86,56 @@ export async function getOrCreateWallet(farmerId: string, phoneNumber: string): 
             };
         }
 
-        // Create new wallet if doesn't exist
-        const { data: newWallet, error: createError } = await supabase
-            .from('wallets')
-            .insert({
-                farmer_id: farmerId,
-                phone_number: phoneNumber,
-                balance: 0,
-                currency: 'KES',
-                status: 'Active'
-            })
-            .select()
-            .single();
+        // If error is "not found" (PGRST116), create new wallet
+        if (fetchError && fetchError.code === 'PGRST116') {
+            // Create new wallet
+            const { data: newWallet, error: createError } = await supabase
+                .from('wallets')
+                .insert({
+                    farmer_id: farmerId,
+                    phone_number: phoneNumber,
+                    balance: 0,
+                    currency: 'KES',
+                    status: 'Active'
+                })
+                .select()
+                .single();
 
-        if (createError) {
-            console.error('Error creating wallet:', createError);
-            return null;
+            if (createError) {
+                console.error('Error creating wallet:', createError);
+                // Check if it's a table not found error
+                if (createError.code === '42P01' || createError.message?.includes('relation "wallets" does not exist')) {
+                    throw new Error('Wallets table does not exist. Please run supabase-wallet-schema.sql in your Supabase SQL Editor.');
+                }
+                throw new Error(`Failed to create wallet: ${createError.message}`);
+            }
+
+            return {
+                id: newWallet.id,
+                farmerId: newWallet.farmer_id,
+                balance: parseFloat(newWallet.balance) || 0,
+                currency: newWallet.currency || 'KES',
+                phoneNumber: newWallet.phone_number,
+                status: newWallet.status,
+                createdAt: newWallet.created_at,
+                updatedAt: newWallet.updated_at
+            };
         }
 
-        return {
-            id: newWallet.id,
-            farmerId: newWallet.farmer_id,
-            balance: parseFloat(newWallet.balance) || 0,
-            currency: newWallet.currency || 'KES',
-            phoneNumber: newWallet.phone_number,
-            status: newWallet.status,
-            createdAt: newWallet.created_at,
-            updatedAt: newWallet.updated_at
-        };
-    } catch (error) {
-        console.error('Error in getOrCreateWallet:', error);
+        // Other fetch errors
+        if (fetchError) {
+            console.error('Error fetching wallet:', fetchError);
+            // Check if it's a table not found error
+            if (fetchError.code === '42P01' || fetchError.message?.includes('relation "wallets" does not exist')) {
+                throw new Error('Wallets table does not exist. Please run supabase-wallet-schema.sql in your Supabase SQL Editor.');
+            }
+            throw new Error(`Failed to fetch wallet: ${fetchError.message}`);
+        }
+
         return null;
+    } catch (error: any) {
+        console.error('Error in getOrCreateWallet:', error);
+        throw error; // Re-throw to let component handle it
     }
 }
 

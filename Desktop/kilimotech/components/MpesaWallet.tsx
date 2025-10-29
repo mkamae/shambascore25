@@ -146,11 +146,48 @@ const MpesaWallet: React.FC<MpesaWalletProps> = ({ farmer }) => {
         );
     }
 
-    if (!wallet) {
+    if (!wallet && error) {
+        const isSetupError = error.includes('table does not exist') || error.includes('run supabase-wallet-schema');
+        const isUUIDError = error.includes('UUID') || error.includes('mock data');
+        const isFarmerError = error.includes('Farmer not found');
+        
         return (
             <Card title="M-Pesa Wallet">
-                <div className="text-center py-8">
-                    <p className="text-red-600">Failed to load wallet</p>
+                <div className="text-center py-8 space-y-4">
+                    <div className="text-red-600 font-semibold">
+                        {isSetupError ? '⚠️ Setup Required' : '❌ Wallet Error'}
+                    </div>
+                    
+                    <div className="max-w-md mx-auto">
+                        <p className="text-gray-700 mb-4">{error}</p>
+                        
+                        {isSetupError && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left text-sm text-gray-700 mb-4">
+                                <p className="font-semibold mb-2">📋 To fix this:</p>
+                                <ol className="list-decimal list-inside space-y-1">
+                                    <li>Open your Supabase Dashboard</li>
+                                    <li>Go to SQL Editor</li>
+                                    <li>Run the <code className="bg-gray-100 px-1 rounded">supabase-wallet-schema.sql</code> file</li>
+                                    <li>Refresh this page</li>
+                                </ol>
+                            </div>
+                        )}
+                        
+                        {isUUIDError && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left text-sm text-gray-700 mb-4">
+                                <p className="font-semibold mb-2">ℹ️ Note:</p>
+                                <p>The wallet feature requires farmers from the Supabase database with UUID IDs. Mock farmers (like "farmer-1") cannot use the wallet.</p>
+                            </div>
+                        )}
+                        
+                        {isFarmerError && (
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-left text-sm text-gray-700 mb-4">
+                                <p className="font-semibold mb-2">ℹ️ Note:</p>
+                                <p>Please ensure you have created farmers in your Supabase database. The wallet feature works with real database records.</p>
+                            </div>
+                        )}
+                    </div>
+                    
                     <button
                         onClick={loadWallet}
                         className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
@@ -160,6 +197,21 @@ const MpesaWallet: React.FC<MpesaWalletProps> = ({ farmer }) => {
                 </div>
             </Card>
         );
+    }
+    
+    if (!wallet && !error) {
+        return (
+            <Card title="M-Pesa Wallet">
+                <div className="text-center py-8">
+                    <Spinner />
+                    <p className="mt-4 text-gray-600">Loading wallet...</p>
+                </div>
+            </Card>
+        );
+    }
+    
+    if (!wallet) {
+        return null;
     }
 
     return (
