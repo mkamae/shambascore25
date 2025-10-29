@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:api": "vercel dev",
     "build": "npx vite build",
     "preview": "npx vite preview",
     "vercel-build": "npx vite build"

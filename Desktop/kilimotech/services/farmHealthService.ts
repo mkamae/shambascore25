@@ -94,25 +94,31 @@ export async function fetchFarmHealth(
         // Check response status
         if (!response.ok) {
             let errorMessage = `HTTP error! status: ${response.status}`;
-            try {
-                // Try to parse error response if available (read body once)
-                const contentType = response.headers.get('content-type');
-                const text = await response.text();
-                
-                if (contentType && contentType.includes('application/json') && text) {
-                    try {
-                        const errorData = JSON.parse(text);
-                        errorMessage = errorData.error || errorMessage;
-                    } catch (e) {
-                        // If JSON parse fails, use text
-                        if (text.trim()) errorMessage = text;
+            
+            // Provide helpful message for 404 in development
+            if (response.status === 404 && import.meta.env.DEV) {
+                errorMessage = 'API route not found. In local development, use `npm run dev:api` or `vercel dev` to enable API routes. Regular `npm run dev` does not support API routes.';
+            } else {
+                try {
+                    // Try to parse error response if available (read body once)
+                    const contentType = response.headers.get('content-type');
+                    const text = await response.text();
+                    
+                    if (contentType && contentType.includes('application/json') && text) {
+                        try {
+                            const errorData = JSON.parse(text);
+                            errorMessage = errorData.error || errorMessage;
+                        } catch (e) {
+                            // If JSON parse fails, use text
+                            if (text.trim()) errorMessage = text;
+                        }
+                    } else if (text && text.trim()) {
+                        errorMessage = text;
                     }
-                } else if (text && text.trim()) {
-                    errorMessage = text;
+                } catch (e) {
+                    // If anything fails, use status text
+                    errorMessage = response.statusText || errorMessage;
                 }
-            } catch (e) {
-                // If anything fails, use status text
-                errorMessage = response.statusText || errorMessage;
             }
             throw new Error(errorMessage);
         }

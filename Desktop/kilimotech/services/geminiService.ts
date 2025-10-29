@@ -21,6 +21,11 @@ export const getFarmInsights = async (farmer: Farmer): Promise<AIInsights> => {
         });
 
         if (!response.ok) {
+            // Provide helpful message for 404 in development
+            if (response.status === 404 && import.meta.env.DEV) {
+                throw new Error('API route not found. In local development, use `npm run dev:api` or `vercel dev` to enable API routes. Regular `npm run dev` does not support API routes.');
+            }
+            
             const error = await response.json().catch(() => ({ error: 'Failed to fetch insights' }));
             throw new Error(error.error || 'Failed to generate AI insights');
         }
