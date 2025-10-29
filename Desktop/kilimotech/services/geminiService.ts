@@ -8,33 +8,44 @@ import { Farmer, AIInsights, CreditProfile } from '../types';
 // Only variables prefixed with VITE_ are available in browser
 // ============================================
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// Lazy initialization - only create client when needed
+let aiInstance: GoogleGenAI | null = null;
 
-// Validate API key is present
-if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-    console.error('❌ GEMINI API KEY MISSING!');
-    console.error('Expected: VITE_GEMINI_API_KEY');
-    console.error('Current value:', apiKey);
-    console.error('All env vars:', import.meta.env);
-    throw new Error(
-        '🔴 Gemini API key is missing!\n\n' +
-        'Steps to fix:\n' +
-        '1. Check .env.local exists in project root\n' +
-        '2. Verify it contains: VITE_GEMINI_API_KEY=your_key\n' +
-        '3. Restart dev server: npm run dev\n' +
-        '4. Clear browser cache: Ctrl+Shift+R\n\n' +
-        'For Vercel deployment, add VITE_GEMINI_API_KEY to environment variables.'
-    );
-}
+function getGeminiClient(): GoogleGenAI {
+    // Return existing instance if already created
+    if (aiInstance) {
+        return aiInstance;
+    }
 
-// Initialize Google Gemini AI client
-let ai: GoogleGenAI;
-try {
-    ai = new GoogleGenAI({ apiKey });
-    console.log('✅ Gemini AI initialized successfully');
-} catch (error) {
-    console.error('❌ Failed to initialize Gemini AI:', error);
-    throw new Error('Failed to initialize Gemini AI client. Check API key format.');
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+    // Validate API key is present
+    if (!apiKey || apiKey === 'undefined' || apiKey === '' || apiKey === undefined) {
+        console.error('❌ GEMINI API KEY MISSING!');
+        console.error('Expected: VITE_GEMINI_API_KEY');
+        console.error('Current value:', apiKey);
+        console.error('Current MODE:', import.meta.env.MODE);
+        console.error('All env vars:', Object.keys(import.meta.env));
+        
+        throw new Error(
+            '🔴 Gemini API key is missing!\n\n' +
+            'Steps to fix:\n' +
+            '1. Check .env.local exists in project root\n' +
+            '2. Verify it contains: VITE_GEMINI_API_KEY=your_key\n' +
+            '3. Restart dev server: npm run dev\n' +
+            '4. Clear browser cache: Ctrl+Shift+R\n\n' +
+            'For Vercel deployment, add VITE_GEMINI_API_KEY to environment variables.'
+        );
+    }
+
+    try {
+        aiInstance = new GoogleGenAI({ apiKey });
+        console.log('✅ Gemini AI initialized successfully');
+        return aiInstance;
+    } catch (error) {
+        console.error('❌ Failed to initialize Gemini AI:', error);
+        throw new Error('Failed to initialize Gemini AI client. Check API key format.');
+    }
 }
 
 const insightsSchema = {
@@ -80,6 +91,8 @@ const creditScoreSchema = {
 };
 
 export const getFarmInsights = async (farmer: Farmer): Promise<AIInsights> => {
+    const ai = getGeminiClient(); // Initialize only when needed
+    
     const prompt = `
         Analyze the following farmer's data and provide personalized, actionable insights.
         The farmer is from ${farmer.location}.
@@ -137,6 +150,8 @@ export const getFarmInsights = async (farmer: Farmer): Promise<AIInsights> => {
 };
 
 export const scoreMpesaStatement = async (statementContent: string): Promise<CreditProfile> => {
+    const ai = getGeminiClient(); // Initialize only when needed
+    
     const prompt = `
        Act as a credit analyst for a Kenyan microfinance institution specializing in agricultural loans.
        Analyze the following M-Pesa statement data to assess the creditworthiness of a smallholder farmer.
