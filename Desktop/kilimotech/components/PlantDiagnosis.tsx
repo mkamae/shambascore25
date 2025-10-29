@@ -7,7 +7,7 @@ import {
     uploadDiagnosisImage,
     DiagnosisRequest,
     DiagnosisResult,
-    PlantDiagnosis
+    PlantDiagnosis as PlantDiagnosisRecord
 } from '../services/plantDiagnosisService';
 import Card from './shared/Card';
 import Spinner from './shared/Spinner';
@@ -24,8 +24,8 @@ const PlantDiagnosis: React.FC<PlantDiagnosisProps> = ({ farmer }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [diagnosis, setDiagnosis] = useState<DiagnosisResult | null>(null);
-    const [savedDiagnosis, setSavedDiagnosis] = useState<PlantDiagnosis | null>(null);
-    const [history, setHistory] = useState<PlantDiagnosis[]>([]);
+    const [savedDiagnosis, setSavedDiagnosis] = useState<PlantDiagnosisRecord | null>(null);
+    const [history, setHistory] = useState<PlantDiagnosisRecord[]>([]);
     const [cameraMode, setCameraMode] = useState(false);
     const [stream, setStream] = useState<MediaStream | null>(null);
     
