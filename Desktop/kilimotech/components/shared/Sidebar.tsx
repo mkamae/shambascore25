@@ -35,6 +35,12 @@ const navItems: NavItem[] = [
         description: 'Satellite Analysis'
     },
     {
+        id: 'Diagnosis',
+        label: 'Plant Diagnosis',
+        icon: '🔬',
+        description: 'Disease Detection'
+    },
+    {
         id: 'Wallet',
         label: 'M-Pesa Wallet',
         icon: '💳',
