@@ -9,6 +9,7 @@ import InsuranceModule from './InsuranceModule';
 import MpesaUpload from './MpesaUpload';
 import FinancialPartners from './FinancialPartners';
 import WeatherForecast from './WeatherForecast';
+import FarmerProfile from './FarmerProfile';
 
 interface FarmerViewProps {
     farmer: Farmer;
@@ -18,7 +19,7 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer }) => {
     const [activeTab, setActiveTab] = useState('Dashboard');
     const [isEditingFarm, setIsEditingFarm] = useState(false);
 
-    const tabs = ['Dashboard', 'My Farm', 'Financials'];
+    const tabs = ['Dashboard', 'My Farm', 'Financials', 'Profile'];
 
     return (
         <div>
@@ -80,6 +81,10 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer }) => {
                          <FinancialPartners />
                     </div>
                 </div>
+            )}
+
+            {activeTab === 'Profile' && (
+                <FarmerProfile farmer={farmer} />
             )}
         </div>
     );
