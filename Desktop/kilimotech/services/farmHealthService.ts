@@ -91,15 +91,55 @@ export async function fetchFarmHealth(
             body: JSON.stringify(request)
         });
 
+        // Check response status
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to fetch farm health data');
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            try {
+                // Try to parse error response if available (read body once)
+                const contentType = response.headers.get('content-type');
+                const text = await response.text();
+                
+                if (contentType && contentType.includes('application/json') && text) {
+                    try {
+                        const errorData = JSON.parse(text);
+                        errorMessage = errorData.error || errorMessage;
+                    } catch (e) {
+                        // If JSON parse fails, use text
+                        if (text.trim()) errorMessage = text;
+                    }
+                } else if (text && text.trim()) {
+                    errorMessage = text;
+                }
+            } catch (e) {
+                // If anything fails, use status text
+                errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
         }
 
-        const result = await response.json();
+        // Check if response has content type
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('API did not return JSON. Response type: ' + (contentType || 'unknown'));
+        }
+
+        // Get text first to check if empty
+        const text = await response.text();
+        if (!text || text.trim().length === 0) {
+            throw new Error('API returned empty response');
+        }
+
+        // Parse JSON
+        let result;
+        try {
+            result = JSON.parse(text);
+        } catch (parseError) {
+            console.error('JSON parse error. Response text:', text.substring(0, 200));
+            throw new Error('Invalid JSON response from API: ' + (parseError as Error).message);
+        }
         
         if (!result.success || !result.data) {
-            throw new Error('Invalid response from Earth Engine API');
+            throw new Error(result.error || 'Invalid response from Earth Engine API');
         }
 
         return result.data;
