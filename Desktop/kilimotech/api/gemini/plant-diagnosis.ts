@@ -175,6 +175,26 @@ export default async function handler(
             });
         }
 
+        // Basic payload validation
+        const maxBytes = 10 * 1024 * 1024; // 10MB
+        // Rough base64 length -> bytes estimate
+        const estimatedBytes = Math.ceil((imageBase64.length * 3) / 4);
+        if (estimatedBytes > maxBytes) {
+            return res.status(413).json({
+                success: false,
+                error: 'Image too large. Please upload an image under 10MB.'
+            });
+        }
+
+        const allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
+        const effectiveMime = imageMimeType || 'image/jpeg';
+        if (!allowedMime.includes(effectiveMime)) {
+            return res.status(415).json({
+                success: false,
+                error: 'Unsupported image type. Use JPEG, PNG, or WEBP.'
+            });
+        }
+
         const ai = new GoogleGenAI({ apiKey });
 
         const request = { cropType, plantPart, farmerLocation };
@@ -189,7 +209,7 @@ export default async function handler(
                 {
                     inlineData: {
                         data: imageBase64,
-                        mimeType: imageMimeType || 'image/jpeg'
+                        mimeType: effectiveMime
                     }
                 }
             ],

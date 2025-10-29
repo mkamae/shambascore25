@@ -334,8 +334,13 @@ const PlantDiagnosis: React.FC<PlantDiagnosisProps> = ({ farmer }) => {
                     </div>
 
                     {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg space-y-2">
                             <p className="text-red-700 text-sm">{error}</p>
+                            {error.includes('API route not found') && (
+                                <div className="text-xs text-red-700/80">
+                                    Tip: For local testing of AI diagnosis, run <code>npm run dev:api</code> (requires Vercel CLI) so API routes are available.
+                                </div>
+                            )}
                         </div>
                     )}
 
