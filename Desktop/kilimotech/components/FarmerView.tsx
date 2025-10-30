@@ -12,6 +12,7 @@ import WeatherForecast from './WeatherForecast';
 import FarmerProfile from './FarmerProfile';
 import FarmHealth from './FarmHealth';
 import PlantDiagnosis from './PlantDiagnosis';
+import { FEATURES } from '../config/features.js';
 
 interface FarmerViewProps {
     farmer: Farmer;
@@ -69,14 +70,26 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 <div className="lg:col-span-2">
-                                    <AIInsights farmer={farmer} />
+                                    {FEATURES.aiAdvisory ? (
+                                        <AIInsights farmer={farmer} />
+                                    ) : (
+                                        <Card title="Insights">
+                                            <div className="text-sm text-gray-600">Insights are disabled by admin.</div>
+                                        </Card>
+                                    )}
                                 </div>
                                 <div className="space-y-6">
                                     <CreditSimulator creditProfile={farmer.creditProfile} />
                                     <InsuranceModule insurance={farmer.insurance} />
                                 </div>
                             </div>
-                            <WeatherForecast farmer={farmer} />
+                            {FEATURES.weatherForecast ? (
+                                <WeatherForecast farmer={farmer} />
+                            ) : (
+                                <Card title="Weather">
+                                    <div className="text-sm text-gray-600">Weather forecast is disabled by admin.</div>
+                                </Card>
+                            )}
                         </div>
                     )}
 
@@ -127,7 +140,13 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
 
                     {/* Plant Diagnosis Content */}
                     {activeTab === 'Diagnosis' && (
-                        <PlantDiagnosis farmer={farmer} />
+                        FEATURES.plantDiagnosis ? (
+                            <PlantDiagnosis farmer={farmer} />
+                        ) : (
+                            <Card title="Plant Diagnosis">
+                                <div className="text-sm text-gray-600">Plant diagnosis is disabled by admin.</div>
+                            </Card>
+                        )
                     )}
 
                     {/* Profile Content */}

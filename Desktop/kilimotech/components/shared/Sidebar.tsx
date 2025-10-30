@@ -1,4 +1,5 @@
 import React from 'react';
+import { FEATURES } from '../../config/features.js';
 
 interface SidebarProps {
     activeTab: string;
@@ -15,7 +16,7 @@ interface NavItem {
     description?: string;
 }
 
-const navItems: NavItem[] = [
+const baseNavItems: NavItem[] = [
     {
         id: 'Dashboard',
         label: 'Dashboard',
@@ -53,6 +54,12 @@ const navItems: NavItem[] = [
         description: 'Risk Profile & Settings'
     }
 ];
+
+const navItems: NavItem[] = baseNavItems.filter((item) => {
+    if (item.id === 'Diagnosis' && !FEATURES.plantDiagnosis) return false;
+    // Keep Farm Health active
+    return true;
+});
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onClose, onLogout }) => {
     const [filter, setFilter] = React.useState('');
