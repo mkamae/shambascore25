@@ -70,12 +70,8 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 <div className="lg:col-span-2">
-                                    {FEATURES.aiAdvisory ? (
+                                    {FEATURES.aiAdvisory && (
                                         <AIInsights farmer={farmer} />
-                                    ) : (
-                                        <Card title="Insights">
-                                            <div className="text-sm text-gray-600">Insights are disabled by admin.</div>
-                                        </Card>
                                     )}
                                 </div>
                                 <div className="space-y-6">
@@ -83,12 +79,8 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                                     <InsuranceModule insurance={farmer.insurance} />
                                 </div>
                             </div>
-                            {FEATURES.weatherForecast ? (
+                            {FEATURES.weatherForecast && (
                                 <WeatherForecast farmer={farmer} />
-                            ) : (
-                                <Card title="Weather">
-                                    <div className="text-sm text-gray-600">Weather forecast is disabled by admin.</div>
-                                </Card>
                             )}
                         </div>
                     )}
@@ -139,14 +131,8 @@ const FarmerView: React.FC<FarmerViewProps> = ({ farmer, onLogout }) => {
                     )}
 
                     {/* Plant Diagnosis Content */}
-                    {activeTab === 'Diagnosis' && (
-                        FEATURES.plantDiagnosis ? (
-                            <PlantDiagnosis farmer={farmer} />
-                        ) : (
-                            <Card title="Plant Diagnosis">
-                                <div className="text-sm text-gray-600">Plant diagnosis is disabled by admin.</div>
-                            </Card>
-                        )
+                    {activeTab === 'Diagnosis' && FEATURES.plantDiagnosis && (
+                        <PlantDiagnosis farmer={farmer} />
                     )}
 
                     {/* Profile Content */}
