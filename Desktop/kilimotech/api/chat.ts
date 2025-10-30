@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
 import { getAdminClient } from './_supabase';
+import { isFeatureEnabled } from './_features';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
@@ -10,6 +11,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         if (req.method !== 'POST') {
             return res.status(405).json({ success: false, error: 'Method not allowed' });
+        }
+
+        if (!isFeatureEnabled('aiAdvisory')) {
+            return res.status(410).json({ success: false, error: 'AI advisory feature is disabled' });
         }
 
         const { farmerId, message, context } = req.body || {};
@@ -38,5 +43,6 @@ function buildPrompt(context: any, message: string) {
     const ctx = context ? `\nContext: ${JSON.stringify(context).slice(0, 1200)}` : '';
     return `${base}${ctx}\n\nQuestion: ${message}`;
 }
+
 
 

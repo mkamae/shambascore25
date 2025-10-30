@@ -7,6 +7,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from '@google/genai';
+import { isFeatureEnabled } from '../_features';
 
 interface PlantDiagnosisRequest {
     imageBase64: string;
@@ -157,6 +158,10 @@ export default async function handler(
     }
 
     try {
+        if (!isFeatureEnabled('plantDiagnosis')) {
+            return res.status(410).json({ success: false, error: 'Plant diagnosis feature is disabled' });
+        }
+
         const apiKey = process.env.GEMINI_API_KEY;
         
         if (!apiKey) {

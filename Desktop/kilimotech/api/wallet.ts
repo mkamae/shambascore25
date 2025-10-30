@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getAdminClient } from './_supabase';
+import { isFeatureEnabled } from './_features';
 
 const ENABLE_WALLET = process.env.ENABLE_WALLET === 'true';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    if (!ENABLE_WALLET) {
+    if (!ENABLE_WALLET || !isFeatureEnabled('wallets')) {
         return res.status(410).json({ success: false, error: 'Wallet feature is disabled' });
     }
 
@@ -44,5 +45,6 @@ function calcNewBalance(current: number, type: string, amount: number) {
     if (type === 'withdrawal' || type === 'payment_out') return Math.max(0, current - amount);
     return current;
 }
+
 
 
