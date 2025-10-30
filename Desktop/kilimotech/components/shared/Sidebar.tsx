@@ -1,5 +1,5 @@
 import React from 'react';
-import { FEATURES } from '../../config/features.js';
+import { FEATURES } from '../../config/featureFlags';
 
 interface SidebarProps {
     activeTab: string;

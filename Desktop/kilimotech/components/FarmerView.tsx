@@ -12,7 +12,7 @@ import WeatherForecast from './WeatherForecast';
 import FarmerProfile from './FarmerProfile';
 import FarmHealth from './FarmHealth';
 import PlantDiagnosis from './PlantDiagnosis';
-import { FEATURES } from '../config/features.js';
+import { FEATURES } from '../config/featureFlags';
 
 interface FarmerViewProps {
     farmer: Farmer;

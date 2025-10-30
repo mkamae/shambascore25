@@ -159,7 +159,7 @@ export default async function handler(
 
     try {
         if (!isFeatureEnabled('plantDiagnosis')) {
-            return res.status(410).json({ success: false, error: 'Plant diagnosis feature is disabled' });
+            return res.status(410).json({ feature_disabled: true, message: 'This feature is temporarily disabled' } as any);
         }
 
         const apiKey = process.env.GEMINI_API_KEY;

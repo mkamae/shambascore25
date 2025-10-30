@@ -10,6 +10,8 @@
  * Free tier: 1,000 calls/day, 60 calls/minute
  */
 
+import { FEATURES } from '../config/featureFlags';
+
 export interface WeatherForecast {
     date: string;
     temperature: {
@@ -232,6 +234,27 @@ async function fetchWeatherForecast(lat: number, lon: number): Promise<WeatherFo
  */
 export async function getWeatherForecast(locationName: string): Promise<WeatherApiResponse> {
     try {
+        if (!FEATURES.weatherForecast) {
+            console.warn('Weather forecast call suppressed: feature disabled');
+            const today = new Date();
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const mkDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            const days = [...Array(5)].map((_, i) => {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                return mkDate(d);
+            });
+            return {
+                forecasts: days.map((date) => ({
+                    date,
+                    temperature: { high: 26, low: 17, unit: 'celsius' },
+                    precipitation: { probability: 10, amount: 0 },
+                    wind: { speed: 8, direction: 90 },
+                    condition: 'Clear'
+                })),
+                location: { name: locationName, coordinates: { lat: 0, lon: 0 } }
+            };
+        }
         // Step 1: Convert location name to coordinates
         const coordinates = await geocodeLocation(locationName);
         

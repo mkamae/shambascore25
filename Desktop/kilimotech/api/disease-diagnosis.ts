@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { isFeatureEnabled } from './_features';
 
 interface DiagnosisRequestBody {
     imageUrl?: string;
@@ -29,6 +30,11 @@ export default async function handler(
     }
 
     try {
+        if (!isFeatureEnabled('plantDiagnosis')) {
+            // Align with requested disabled response shape
+            return res.status(410).json({ feature_disabled: true, message: 'This feature is temporarily disabled' } as any);
+        }
+
         const body: DiagnosisRequestBody = req.body || {};
         const { imageUrl, base64Image } = body;
 

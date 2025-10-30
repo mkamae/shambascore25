@@ -4,7 +4,7 @@ import FarmerView from './components/FarmerView';
 import LandingPage from './components/LandingPage';
 import Header from './components/shared/Header';
 import Chatbot from './components/Chatbot';
-import { FEATURES } from './config/features.js';
+import { FEATURES } from './config/featureFlags';
 
 const AppContent: React.FC = () => {
     const { userType, logout, selectedFarmer } = useApp();

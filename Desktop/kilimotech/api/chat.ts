@@ -14,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (!isFeatureEnabled('aiAdvisory')) {
-            return res.status(410).json({ success: false, error: 'AI advisory feature is disabled' });
+            return res.status(410).json({ feature_disabled: true, message: 'This feature is temporarily disabled' });
         }
 
         const { farmerId, message, context } = req.body || {};

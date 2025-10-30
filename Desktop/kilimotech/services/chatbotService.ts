@@ -15,6 +15,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { FEATURES } from '../config/featureFlags';
 import { Farmer } from '../types';
 import { fetchFarmerProfile } from './farmerProfileService';
 
@@ -37,6 +38,10 @@ async function generateAIResponse(
     farmerProfile: any
 ): Promise<string> {
     try {
+        if (!FEATURES.aiAdvisory) {
+            console.warn('Chatbot call suppressed: feature disabled');
+            return 'Chatbot is disabled by the administrator.';
+        }
         const response = await fetch('/api/gemini/chatbot', {
             method: 'POST',
             headers: {
@@ -233,10 +238,12 @@ export async function sendMessage(
         // Generate AI response
         const response = await generateAIResponse(message, farmer, farmerProfile);
 
-        // Save to database (async, don't wait)
-        saveChatMessage(farmer.id, message, response).catch(err => {
-            console.error('Failed to save chat message:', err);
-        });
+        if (FEATURES.aiAdvisory) {
+            // Save to database (async, don't wait)
+            saveChatMessage(farmer.id, message, response).catch(err => {
+                console.error('Failed to save chat message:', err);
+            });
+        }
 
         return response;
     } catch (error: any) {

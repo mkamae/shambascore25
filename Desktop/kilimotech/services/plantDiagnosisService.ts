@@ -13,6 +13,7 @@
  */
 
 import { supabase } from './supabaseClient';
+import { FEATURES } from '../config/featureFlags';
 
 export interface PlantDiagnosis {
     id: string;
@@ -92,6 +93,20 @@ export async function diagnosePlantImage(
     request: DiagnosisRequest
 ): Promise<DiagnosisResult> {
     try {
+        if (!FEATURES.plantDiagnosis) {
+            console.warn('Plant diagnosis call suppressed: feature disabled');
+            return {
+                diseaseName: 'Feature Disabled',
+                confidenceScore: 0,
+                severity: 'Low',
+                affectedStage: undefined,
+                possibleCauses: [],
+                symptomsDescription: 'Diagnosis is disabled by the administrator.',
+                preventiveMeasures: 'N/A',
+                seekAgronomist: false,
+                urgencyLevel: 'Low'
+            };
+        }
         // Convert image to base64
         const imageBase64 = await fileToBase64(request.imageFile);
 
